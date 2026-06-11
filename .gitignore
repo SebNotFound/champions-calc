@@ -15,6 +15,9 @@ dist-ssr
 # Playwright MCP screenshots / snapshots
 .playwright-mcp
 
+# Recognizer dev crop outputs
+samples/crops
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
