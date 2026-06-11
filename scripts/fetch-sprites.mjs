@@ -22,7 +22,7 @@ import { Generations } from '@pkmn/data';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { hashImage } from '../src/champions/phash.ts';
+import { spriteThumbnail, encodeThumb } from '../src/champions/phash.ts';
 
 const API = 'https://archives.bulbagarden.net/w/api.php';
 const OUT = fileURLToPath(new URL('../src/champions/data/sprite-hashes.json', import.meta.url));
@@ -114,7 +114,7 @@ await pool(titles, 5, async (title) => {
   if (!species || !url) { skipped++; return; }
   try {
     const png = PNG.sync.read(await fetchBuffer(url));
-    entries.push({ species, ...hashImage(png.data, png.width, png.height) });
+    entries.push({ species, t: encodeThumb(spriteThumbnail(png.data, png.width, png.height)) });
     speciesSeen.add(toID(species));
   } catch {
     skipped++;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { hashImage, hashDistance } from './phash';
+import { spriteThumbnail, normalizeThumb, similarity, encodeThumb, decodeThumb, THUMB } from './phash';
 
 function gradient(w: number, h: number): Uint8ClampedArray {
   const arr = new Uint8ClampedArray(w * h * 4);
@@ -16,27 +16,43 @@ function gradient(w: number, h: number): Uint8ClampedArray {
 
 function solid(w: number, h: number, r: number, g: number, b: number): Uint8ClampedArray {
   const arr = new Uint8ClampedArray(w * h * 4);
-  for (let i = 0; i < arr.length; i += 4) {
-    arr[i] = r; arr[i + 1] = g; arr[i + 2] = b; arr[i + 3] = 255;
-  }
+  for (let i = 0; i < arr.length; i += 4) { arr[i] = r; arr[i + 1] = g; arr[i + 2] = b; arr[i + 3] = 255; }
   return arr;
 }
 
-describe('phash', () => {
-  it('gives distance 0 for identical images', () => {
-    const g = gradient(20, 16);
-    expect(hashDistance(hashImage(g, 20, 16), hashImage(g, 20, 16))).toBe(0);
+const vec = (rgba: Uint8ClampedArray, w: number, h: number) => normalizeThumb(spriteThumbnail(rgba, w, h));
+
+describe('sprite thumbnails', () => {
+  it('produces a THUMB×THUMB thumbnail', () => {
+    expect(spriteThumbnail(gradient(40, 30), 40, 30)).toHaveLength(THUMB * THUMB);
   });
 
-  it('gives a larger distance for clearly different images', () => {
-    const grad = hashImage(gradient(20, 16), 20, 16);
-    const flat = hashImage(solid(20, 16, 200, 30, 30), 20, 16);
-    expect(hashDistance(grad, flat)).toBeGreaterThan(8);
+  it('an image is identical to itself (similarity ~1)', () => {
+    const g = gradient(40, 30);
+    expect(similarity(vec(g, 40, 30), vec(g, 40, 30))).toBeCloseTo(1, 5);
   });
 
-  it('produces 16-hex-char fingerprints', () => {
-    const h = hashImage(gradient(16, 16), 16, 16);
-    expect(h.a).toHaveLength(16);
-    expect(h.d).toHaveLength(16);
+  it('a horizontal gradient and a vertical gradient are clearly different', () => {
+    const horiz = vec(gradient(40, 40), 40, 40);
+    // vertical gradient
+    const arr = new Uint8ClampedArray(40 * 40 * 4);
+    for (let y = 0; y < 40; y++) for (let x = 0; x < 40; x++) {
+      const i = (y * 40 + x) * 4; const v = Math.round((255 * y) / 39);
+      arr[i] = arr[i + 1] = arr[i + 2] = v; arr[i + 3] = 255;
+    }
+    expect(similarity(horiz, normalizeThumb(spriteThumbnail(arr, 40, 40)))).toBeLessThan(0.5);
+  });
+
+  it('matches a sprite better than an unrelated flat image', () => {
+    const g = gradient(40, 30);
+    const self = similarity(vec(g, 40, 30), vec(g, 40, 30));
+    const other = similarity(vec(g, 40, 30), vec(solid(40, 30, 200, 30, 30), 40, 30));
+    expect(self).toBeGreaterThan(other);
+  });
+
+  it('round-trips through base64', () => {
+    const t = spriteThumbnail(gradient(40, 30), 40, 30);
+    const back = decodeThumb(encodeThumb(t));
+    expect([...back]).toEqual([...t]);
   });
 });
