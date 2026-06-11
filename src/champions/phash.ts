@@ -80,22 +80,21 @@ export function spriteThumbnail(rgba: RGBA, w: number, h: number): Uint8Array {
   return out;
 }
 
-/** Pack a thumbnail to base64 (compact JSON storage). */
+/** Pack a thumbnail to base64 (compact JSON storage). `btoa`/`atob` are global
+ *  in both the browser and modern Node, so they serve the runtime and the
+ *  offline sprite-fetch script alike. */
 export function encodeThumb(thumb: Uint8Array): string {
   let bin = '';
   for (let i = 0; i < thumb.length; i++) bin += String.fromCharCode(thumb[i]);
-  return typeof btoa === 'function' ? btoa(bin) : Buffer.from(thumb).toString('base64');
+  return btoa(bin);
 }
 
 /** Unpack a base64 thumbnail back to bytes. */
 export function decodeThumb(b64: string): Uint8Array {
-  if (typeof atob === 'function') {
-    const bin = atob(b64);
-    const out = new Uint8Array(bin.length);
-    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
-    return out;
-  }
-  return new Uint8Array(Buffer.from(b64, 'base64'));
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
 }
 
 /** Mean-subtract + L2-normalize a thumbnail into a comparison vector. */
