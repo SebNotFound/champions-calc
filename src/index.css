@@ -1,0 +1,85 @@
+/* Global theme + resets for the Champions calculator. Light, compact and
+   card-based, echoing the clean VGC-multicalc look. */
+:root {
+  --bg: #f4f6fa;
+  --panel: #ffffff;
+  --panel-2: #f8fafc;
+  --border: #dfe3ea;
+  --text: #1f2733;
+  --text-dim: #6b7686;
+  --accent: #2f6fed;
+  --accent-dim: #e7efff;
+  --danger: #b3253a;
+  --code-bg: #eef1f6;
+  --track: #e9edf3;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+
+  font: 14px/1.45 system-ui, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dark theme — toggled via data-theme="dark" on <html>. */
+:root[data-theme="dark"] {
+  --bg: #0f1420;
+  --panel: #1a2231;
+  --panel-2: #232d3f;
+  --border: #2f3a4e;
+  --text: #e6eaf2;
+  --text-dim: #97a3b6;
+  --accent: #5b8cff;
+  --accent-dim: #1d2b48;
+  --danger: #ff6b81;
+  --code-bg: #232d3f;
+  --track: #2a3447;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; }
+
+/* Full-width app (override the Vite starter's fixed, centred root). */
+#root {
+  width: 100%;
+  min-height: 100svh;
+  text-align: left;
+}
+
+h1, h2 { margin: 0; font-weight: 600; color: var(--text); }
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 12px;
+  transition: background 0.15s, border-color 0.15s;
+}
+button:hover:not(:disabled) { background: var(--panel-2); border-color: #c7ccd6; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+button.primary:hover:not(:disabled) { background: #2660d8; }
+
+input, select {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 5px 8px;
+  width: 100%;
+}
+input:focus, select:focus { outline: 2px solid var(--accent-dim); border-color: var(--accent); }
+
+code {
+  font-family: ui-monospace, Consolas, monospace;
+  background: var(--code-bg);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.92em;
+}
