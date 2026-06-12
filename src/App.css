@@ -88,8 +88,8 @@
 .team-slots-actions { display: flex; gap: 4px; align-items: center; }
 .team-name { font-weight: 600; font-size: 13px; flex: 1; min-width: 0; }
 .team-slots-actions button { padding: 4px 8px; font-size: 12px; white-space: nowrap; }
-.team-import-row { display: flex; flex-wrap: wrap; gap: 4px; }
-.import-btn { flex: 1 1 56px; min-width: 0; padding: 5px 6px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+.team-import-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.import-btn { flex: 1 1 60px; min-width: 0; padding: 8px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 
 .member-list { display: flex; flex-direction: column; gap: 4px; }
 .member { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); cursor: pointer; transition: background 0.12s, border-color 0.12s; }
@@ -203,7 +203,16 @@
 .dmg-bar-fill { height: 100%; border-radius: 999px; transition: width 0.15s; }
 
 /* ---- Footer ---- */
-.app-footer { font-size: 12px; color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 10px; }
+.app-footer {
+  font-size: 12px; color: var(--text-dim); border-top: 1px solid var(--border); padding-top: 12px;
+  display: flex; align-items: center; gap: 12px;
+}
+.app-footer p { margin: 0; }
+.footer-logo {
+  width: 40px; height: 28px; flex-shrink: 0; opacity: 0.6;
+  fill: none; stroke: var(--text-dim); stroke-width: 2.4; stroke-linecap: round;
+}
+.footer-logo .brand-logo-dot { fill: var(--text-dim); stroke: none; }
 
 /* ---- Import modal ---- */
 .modal-backdrop {

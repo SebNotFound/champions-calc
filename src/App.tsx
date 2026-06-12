@@ -20,6 +20,7 @@ import type { FieldState } from './ui/FieldControls';
 import { SharedDatalists } from './ui/widgets';
 import { ImportDialog } from './ui/ImportDialog';
 import { TeamReportDialog } from './ui/TeamReportDialog';
+import { BrandLogo } from './ui/BrandLogo';
 import { PokepasteDialog } from './ui/PokepasteDialog';
 import {
   buildPokemon, defaultSet, autofillSet, CHAMPIONS_FORMAT,
@@ -157,13 +158,7 @@ export default function App() {
 
       <header className="app-header">
         <div className="brand">
-          <svg className="brand-logo" viewBox="0 0 52 36" aria-hidden="true">
-            <rect x="2" y="6" width="48" height="24" rx="7" />
-            <line x1="2" y1="18" x2="19" y2="18" />
-            <line x1="33" y1="18" x2="50" y2="18" />
-            <circle cx="26" cy="18" r="7" />
-            <circle className="brand-logo-dot" cx="26" cy="18" r="2.2" />
-          </svg>
+          <BrandLogo />
           <div className="brand-text">
             <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
             <span className="reg-badge">
@@ -280,8 +275,11 @@ export default function App() {
       </main>
 
       <footer className="app-footer">
-        Stats use the Champions Stat Points model (66 SP, 32/stat, perfect IVs).
-        Damage by <code>@smogon/calc</code>. Mega &amp; roster data is a work in progress.
+        <BrandLogo className="footer-logo" />
+        <p>
+          Stats use the Champions Stat Points model (66 SP, 32/stat, perfect IVs).
+          Damage by <code>@smogon/calc</code>. Mega &amp; roster data is a work in progress.
+        </p>
       </footer>
 
       <ImportDialog side={photoSide} onClose={() => setPhotoSide(null)} onImport={handlePhotoImport} />
