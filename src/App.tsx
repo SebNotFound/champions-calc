@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { Pokemon } from '@smogon/calc';
 import { PokemonEditor } from './ui/PokemonEditor';
 import { DefenderCard } from './ui/DefenderCard';
+import { IncomingPanel } from './ui/IncomingPanel';
 import { TeamColumn } from './ui/TeamColumn';
 import { FieldControls, defaultFieldState, toField } from './ui/FieldControls';
 import type { FieldState } from './ui/FieldControls';
@@ -183,13 +184,21 @@ export default function App() {
         <section className="center-col">
           {/* Top line: your attacker vs the two active enemies. */}
           <div className="battle-row">
-            <PokemonEditor
-              key={`p-${playerTeamIdx}-${safeAttackerIdx}`}
-              set={attacker}
-              onChange={updateAttacker}
-              role="attacker"
-              title="Attacker"
-            />
+            <div className="attacker-col">
+              <PokemonEditor
+                key={`p-${playerTeamIdx}-${safeAttackerIdx}`}
+                set={attacker}
+                onChange={updateAttacker}
+                role="attacker"
+                title="Attacker"
+              />
+              <IncomingPanel
+                attacker={attackerMon}
+                attackerName={attackerMon?.name ?? attacker.species}
+                enemies={enemyTeam.members.slice(0, 2)}
+                field={field}
+              />
+            </div>
             {enemyTeam.members.slice(0, 2).map((d, i) => (
               <DefenderCard
                 key={`e-${enemyTeamIdx}-${i}`}
