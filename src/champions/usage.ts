@@ -38,7 +38,9 @@ export function getUsage(species: string): UsageSet | undefined {
   const entry = USAGE[toID(species)];
   if (!entry) return undefined;
   return {
-    moves: entry.moves ?? [],
+    // The usage source occasionally lists a "Nothing" placeholder for an unused
+    // move slot — drop it so a set never autofills a bogus move.
+    moves: (entry.moves ?? []).filter((m) => m && m !== 'Nothing'),
     item: entry.item,
     ability: entry.ability,
     nature: entry.nature as NatureName | undefined,
