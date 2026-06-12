@@ -19,6 +19,7 @@ import { FieldControls, defaultFieldState, toField, toIncomingField } from './ui
 import type { FieldState } from './ui/FieldControls';
 import { SharedDatalists } from './ui/widgets';
 import { ImportDialog } from './ui/ImportDialog';
+import { TeamReportDialog } from './ui/TeamReportDialog';
 import { PokepasteDialog } from './ui/PokepasteDialog';
 import {
   buildPokemon, defaultSet, autofillSet, CHAMPIONS_FORMAT,
@@ -34,6 +35,7 @@ export default function App() {
   const [attackerIdx, setAttackerIdx] = useState(0);
   const [fieldState, setFieldState] = useState<FieldState>(defaultFieldState);
   const [photoSide, setPhotoSide] = useState<null | 'player' | 'enemy'>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const [pasteSide, setPasteSide] = useState<null | 'player' | 'enemy'>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('champions-calc/theme');
@@ -194,6 +196,7 @@ export default function App() {
           onDeleteTeam={deletePlayerTeam}
           onImportText={() => setPasteSide('player')}
           onImportPhoto={() => setPhotoSide('player')}
+          onImportReport={() => setReportOpen(true)}
           onAddMember={addPlayerMember}
           onRemoveMember={removePlayerMember}
         />
@@ -282,6 +285,14 @@ export default function App() {
       </footer>
 
       <ImportDialog side={photoSide} onClose={() => setPhotoSide(null)} onImport={handlePhotoImport} />
+      <TeamReportDialog
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        onImport={(sets) => {
+          updateMembers('playerTeams', playerTeamIdx, () => sets);
+          setAttackerIdx(0);
+        }}
+      />
       <PokepasteDialog
         open={pasteSide !== null}
         side={pasteSide ?? 'player'}
