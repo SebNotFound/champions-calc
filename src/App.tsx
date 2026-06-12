@@ -25,7 +25,6 @@ import {
   loadState, saveState, seedState, emptyTeam, MAX_TEAMS, MAX_TEAM_SIZE,
 } from './champions';
 import type { ChampionsSet, Team, SavedState } from './champions';
-import type { RecognitionResult } from './recognition';
 import './App.css';
 
 type TeamKey = 'playerTeams' | 'enemyTeams';
@@ -34,7 +33,7 @@ export default function App() {
   const [state, setState] = useState<SavedState>(() => loadState() ?? seedState());
   const [attackerIdx, setAttackerIdx] = useState(0);
   const [fieldState, setFieldState] = useState<FieldState>(defaultFieldState);
-  const [photoOpen, setPhotoOpen] = useState(false);
+  const [photoSide, setPhotoSide] = useState<null | 'player' | 'enemy'>(null);
   const [pasteSide, setPasteSide] = useState<null | 'player' | 'enemy'>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('champions-calc/theme');
@@ -117,16 +116,17 @@ export default function App() {
     setPasteSide(null);
   };
 
-  // ---- Team Preview photo import (Phase 2): fills both sides ----
+  // ---- Photo import: fills one side from the reviewed species list ----
   // Detected Pokémon arrive with their most-used Champions set (same fill as
   // picking a species by hand), so they're battle-ready, not blank.
-  const handlePhotoImport = (result: RecognitionResult) => {
-    if (result.player.length) {
-      updateMembers('playerTeams', playerTeamIdx, () => result.player.slice(0, 6).map((d) => autofillSet(d.species)));
+  const handlePhotoImport = (side: 'player' | 'enemy', species: string[]) => {
+    const sets = species.slice(0, 6).map((s) => autofillSet(s));
+    if (!sets.length) return;
+    if (side === 'player') {
+      updateMembers('playerTeams', playerTeamIdx, () => sets);
       setAttackerIdx(0);
-    }
-    if (result.enemy.length) {
-      updateMembers('enemyTeams', enemyTeamIdx, () => result.enemy.slice(0, 6).map((d) => autofillSet(d.species)));
+    } else {
+      updateMembers('enemyTeams', enemyTeamIdx, () => sets);
     }
   };
 
@@ -155,22 +155,22 @@ export default function App() {
 
       <header className="app-header">
         <div className="brand">
-          <h1>Champions Damage Calc</h1>
-          <span className="reg-badge">
-            {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} {CHAMPIONS_FORMAT.gameType}
-          </span>
+          <div className="brand-mark" aria-hidden="true">◓</div>
+          <div className="brand-text">
+            <h1>Champions Calc</h1>
+            <span className="reg-badge">
+              {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} {CHAMPIONS_FORMAT.gameType}
+            </span>
+          </div>
         </div>
-        <div className="header-actions">
-          <button
-            className="theme-toggle"
-            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-            title="Toggle dark mode"
-            aria-label="Toggle dark mode"
-          >
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
-          <button className="primary" onClick={() => setPhotoOpen(true)}>Import from Team Preview</button>
-        </div>
+        <button
+          className="theme-toggle"
+          onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+          title="Toggle dark mode"
+          aria-label="Toggle dark mode"
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
       </header>
 
       <FieldControls value={fieldState} onChange={setFieldState} onReset={handleResetConditions} />
@@ -186,7 +186,8 @@ export default function App() {
           onAddTeam={addPlayerTeam}
           onRenameTeam={renamePlayerTeam}
           onDeleteTeam={deletePlayerTeam}
-          onImport={() => setPasteSide('player')}
+          onImportText={() => setPasteSide('player')}
+          onImportPhoto={() => setPhotoSide('player')}
           onAddMember={addPlayerMember}
           onRemoveMember={removePlayerMember}
         />
@@ -261,7 +262,8 @@ export default function App() {
           onAddTeam={addEnemyTeam}
           onRenameTeam={renameEnemyTeam}
           onDeleteTeam={deleteEnemyTeam}
-          onImport={() => setPasteSide('enemy')}
+          onImportText={() => setPasteSide('enemy')}
+          onImportPhoto={() => setPhotoSide('enemy')}
           onAddMember={addEnemyMember}
           onRemoveMember={removeEnemyMember}
           addLabel="+ Add target"
@@ -273,7 +275,7 @@ export default function App() {
         Damage by <code>@smogon/calc</code>. Mega &amp; roster data is a work in progress.
       </footer>
 
-      <ImportDialog open={photoOpen} onClose={() => setPhotoOpen(false)} onImport={handlePhotoImport} />
+      <ImportDialog side={photoSide} onClose={() => setPhotoSide(null)} onImport={handlePhotoImport} />
       <PokepasteDialog
         open={pasteSide !== null}
         side={pasteSide ?? 'player'}

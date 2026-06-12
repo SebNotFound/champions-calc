@@ -20,7 +20,8 @@ interface Props {
   onAddTeam: () => void;
   onRenameTeam: (name: string) => void;
   onDeleteTeam: () => void;
-  onImport: () => void;
+  onImportText: () => void;
+  onImportPhoto: () => void;
   onAddMember: () => void;
   onRemoveMember: (i: number) => void;
   addLabel?: string;
@@ -40,7 +41,8 @@ export function TeamColumn(props: Props) {
         onAdd={props.onAddTeam}
         onRename={props.onRenameTeam}
         onDelete={props.onDeleteTeam}
-        onImport={props.onImport}
+        onImportText={props.onImportText}
+        onImportPhoto={props.onImportPhoto}
       />
       <div className="member-list">
         {team.members.map((m, i) => {

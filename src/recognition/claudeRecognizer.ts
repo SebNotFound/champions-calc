@@ -1,4 +1,5 @@
 import { resolveSpeciesName } from '../champions';
+import type { Side } from '../champions';
 import { extractTeams } from './parse';
 import type { DetectedPokemon, RecognitionResult, TeamPreviewRecognizer } from './types';
 
@@ -51,7 +52,9 @@ export class ClaudeRecognizer implements TeamPreviewRecognizer {
     this.apiKey = apiKey;
   }
 
-  async recognize(image: Blob): Promise<RecognitionResult> {
+  // Claude reads the whole Team Preview, so it returns both sides regardless of
+  // `side`; the dialog uses whichever side it asked for.
+  async recognize(image: Blob, _side: Side): Promise<RecognitionResult> {
     if (!this.apiKey) throw new Error('Add your Anthropic API key to use the precise (Claude) engine.');
 
     const { base64, mediaType } = await blobToBase64(image);

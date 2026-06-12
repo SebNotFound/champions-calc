@@ -4,17 +4,23 @@
 
 /* ---- Header ---- */
 .app-header {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; flex-wrap: wrap;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 9px 14px; background: var(--panel);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
 }
-.brand { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-.brand h1 { font-size: 22px; }
-.reg-badge {
-  font-size: 12px; font-weight: 600; color: var(--accent);
-  background: var(--accent-dim); padding: 3px 9px; border-radius: 999px;
+.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+.brand-mark {
+  width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center;
+  border-radius: 10px; font-size: 20px; color: #fff;
+  background: linear-gradient(135deg, var(--accent), #7aa2ff);
 }
-.header-actions { display: flex; align-items: center; gap: 8px; }
-.theme-toggle { font-size: 16px; line-height: 1; padding: 7px 10px; }
+.brand-text { display: flex; flex-direction: column; min-width: 0; }
+.brand-text h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+.reg-badge { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.theme-toggle {
+  font-size: 15px; line-height: 1; width: 36px; height: 36px; padding: 0; flex-shrink: 0;
+  border-radius: 10px; display: grid; place-items: center;
+}
 
 /* Dark-mode tweaks for the few hardcoded light backgrounds. */
 [data-theme="dark"] .icon-btn:hover { background: #3a2530; }
@@ -61,8 +67,11 @@
 .slot.active { background: var(--accent); border-color: var(--accent); color: #fff; }
 .slot-add { color: var(--text-dim); }
 .team-slots-actions { display: flex; gap: 4px; align-items: center; }
-.team-name { font-weight: 600; font-size: 13px; }
+.team-name { font-weight: 600; font-size: 13px; flex: 1; min-width: 0; }
 .team-slots-actions button { padding: 4px 8px; font-size: 12px; white-space: nowrap; }
+.team-import-row { display: flex; align-items: center; gap: 6px; }
+.import-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-dim); }
+.import-btn { flex: 1; padding: 5px 8px; font-size: 12px; font-weight: 600; white-space: nowrap; }
 
 .member-list { display: flex; flex-direction: column; gap: 4px; }
 .member { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 8px; background: var(--panel); cursor: pointer; transition: background 0.12s, border-color 0.12s; }
