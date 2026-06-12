@@ -7,12 +7,12 @@
  * whichever enemies are on the front line, dragging a different enemy up there
  * refreshes the tab with the new Pokémon automatically.
  *
- * Incoming uses the shared weather/terrain but not the screens/Helping Hand,
- * which belong to the offensive direction in the app's single-field model.
+ * `field` is the incoming field built by the app (your-side screens + shared
+ * weather/terrain), so "Your screens" protect you here.
  */
 import { useMemo, useState } from 'react';
 import type { Field, Pokemon } from '@smogon/calc';
-import { buildPokemon, calcOne, makeField, spriteUrl } from '../champions';
+import { buildPokemon, calcOne, spriteUrl } from '../champions';
 import type { ChampionsSet } from '../champions';
 import { ResultRow, type MoveResult } from './widgets';
 
@@ -32,11 +32,6 @@ export function IncomingPanel({ attacker, attackerName, enemies, field }: Props)
   const active = Math.min(tab, Math.max(0, enemies.length - 1));
   const enemy = enemies[active];
 
-  const incomingField = useMemo(
-    () => makeField({ weather: field.weather, terrain: field.terrain }),
-    [field],
-  );
-
   const rows = useMemo<MoveResult[]>(() => {
     if (!attacker || !enemy) return [];
     let mon: Pokemon;
@@ -44,14 +39,12 @@ export function IncomingPanel({ attacker, attackerName, enemies, field }: Props)
     const moves = Array.from(new Set((enemy.moves ?? []).map((m) => m.trim()).filter(Boolean)));
     return moves.map((move) => {
       try {
-        return { move, ...calcOne(mon, attacker, move, incomingField) };
+        return { move, ...calcOne(mon, attacker, move, field) };
       } catch {
         return { move, minPercent: 0, maxPercent: 0, minDamage: 0, maxDamage: 0, defenderMaxHP: 0, koChance: '', rolls: [] };
       }
     });
-  }, [attacker, enemy, incomingField]);
-
-  if (enemies.length === 0) return null;
+  }, [attacker, enemy, field]);
 
   return (
     <div className="incoming-panel">
@@ -59,29 +52,35 @@ export function IncomingPanel({ attacker, attackerName, enemies, field }: Props)
         Incoming{attacker ? ` → ${attackerName}` : ''}
       </div>
 
-      <div className="incoming-tabs" role="tablist">
-        {enemies.map((e, i) => (
-          <button
-            key={i}
-            role="tab"
-            aria-selected={i === active}
-            className={`incoming-tab${i === active ? ' active' : ''}`}
-            onClick={() => setTab(i)}
-            title={e.species}
-          >
-            <img src={spriteUrl(e.megaForme ?? e.species)} alt="" onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
-            <span>{e.species}</span>
-          </button>
-        ))}
-      </div>
+      {enemies.length === 0 ? (
+        <p className="results-hint">Add an enemy (right) to see what it does to you.</p>
+      ) : (
+        <>
+          <div className="incoming-tabs" role="tablist">
+            {enemies.map((e, i) => (
+              <button
+                key={i}
+                role="tab"
+                aria-selected={i === active}
+                className={`incoming-tab${i === active ? ' active' : ''}`}
+                onClick={() => setTab(i)}
+                title={e.species}
+              >
+                <img src={spriteUrl(e.megaForme ?? e.species)} alt="" onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                <span>{e.species}</span>
+              </button>
+            ))}
+          </div>
 
-      <div className="incoming-body">
-        {!attacker && <p className="results-hint">Set your attacker’s species to see incoming damage.</p>}
-        {attacker && rows.length === 0 && (
-          <p className="results-hint">Add moves to {enemy?.species} (in its card) to see incoming damage.</p>
-        )}
-        {attacker && rows.map((r) => <ResultRow key={r.move} r={r} />)}
-      </div>
+          <div className="incoming-body">
+            {!attacker && <p className="results-hint">Set your attacker’s species to see incoming damage.</p>}
+            {attacker && rows.length === 0 && (
+              <p className="results-hint">Add moves to {enemy?.species} (in its card) to see incoming damage.</p>
+            )}
+            {attacker && rows.map((r) => <ResultRow key={r.move} r={r} />)}
+          </div>
+        </>
+      )}
     </div>
   );
 }

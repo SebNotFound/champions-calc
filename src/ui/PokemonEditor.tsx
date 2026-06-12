@@ -26,6 +26,17 @@ import type { ChampionsSet, NatureName, StatTable } from '../champions';
 
 const NATURE_NAMES = (Object.keys(NATURES) as NatureName[]).sort();
 
+/** Major-status options (value = @smogon/calc status id, or '' for healthy). */
+const STATUSES: [string, string][] = [
+  ['', 'Healthy'],
+  ['brn', 'Burned'],
+  ['par', 'Paralyzed'],
+  ['psn', 'Poisoned'],
+  ['tox', 'Badly Poisoned'],
+  ['slp', 'Asleep'],
+  ['frz', 'Frozen'],
+];
+
 interface Props {
   set: ChampionsSet;
   onChange: (next: ChampionsSet) => void;
@@ -175,6 +186,12 @@ export function PokemonEditor({
             {abilityOptions.map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </label>
+        <label className="field">
+          <span>Status</span>
+          <select value={set.status ?? ''} onChange={(e) => patch({ status: e.target.value || undefined })}>
+            {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+          </select>
+        </label>
       </div>
 
       <StatSpreadEditor
@@ -210,9 +227,7 @@ export function PokemonEditor({
 
       <BattleState
         boosts={set.boosts ?? {}}
-        status={set.status}
         onBoosts={(boosts) => patch({ boosts })}
-        onStatus={(status) => patch({ status })}
       />
     </div>
   );

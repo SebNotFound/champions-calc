@@ -15,7 +15,7 @@ import { PokemonEditor } from './ui/PokemonEditor';
 import { DefenderCard } from './ui/DefenderCard';
 import { IncomingPanel } from './ui/IncomingPanel';
 import { TeamColumn } from './ui/TeamColumn';
-import { FieldControls, defaultFieldState, toField } from './ui/FieldControls';
+import { FieldControls, defaultFieldState, toField, toIncomingField } from './ui/FieldControls';
 import type { FieldState } from './ui/FieldControls';
 import { SharedDatalists } from './ui/widgets';
 import { ImportDialog } from './ui/ImportDialog';
@@ -137,7 +137,17 @@ export default function App() {
     () => Array.from(new Set((attacker.moves ?? []).map((m) => m.trim()).filter(Boolean))),
     [attacker.moves],
   );
-  const field = useMemo(() => toField(fieldState), [fieldState]);
+  const field = useMemo(() => toField(fieldState), [fieldState]);          // outgoing: you → them
+  const incomingField = useMemo(() => toIncomingField(fieldState), [fieldState]); // incoming: them → you
+
+  // Reset every battle condition: field (weather/terrain/screens/Helping Hand)
+  // plus each active Pokémon's status and stat boosts.
+  const handleResetConditions = () => {
+    setFieldState(defaultFieldState);
+    const clear = (m: ChampionsSet): ChampionsSet => ({ ...m, status: undefined, boosts: {} });
+    updateMembers('playerTeams', playerTeamIdx, (ms) => ms.map(clear));
+    updateMembers('enemyTeams', enemyTeamIdx, (ms) => ms.map(clear));
+  };
 
   return (
     <div className="app">
@@ -163,7 +173,7 @@ export default function App() {
         </div>
       </header>
 
-      <FieldControls value={fieldState} onChange={setFieldState} />
+      <FieldControls value={fieldState} onChange={setFieldState} onReset={handleResetConditions} />
 
       <main className="calc-layout">
         <TeamColumn
@@ -196,7 +206,7 @@ export default function App() {
                 attacker={attackerMon}
                 attackerName={attackerMon?.name ?? attacker.species}
                 enemies={enemyTeam.members.slice(0, 2)}
-                field={field}
+                field={incomingField}
               />
             </div>
             {enemyTeam.members.slice(0, 2).map((d, i) => (
