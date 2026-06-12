@@ -25,12 +25,17 @@ interface Props {
   onImportReport?: () => void;
   onAddMember: () => void;
   onRemoveMember: (i: number) => void;
+  /** Swap two members by index — enables dragging a list member onto an active
+   *  target card (and reordering within the list). Shares the 'text/plain' index
+   *  drag format with the defender cards. */
+  onMemberReorder?: (from: number, to: number) => void;
   addLabel?: string;
 }
 
 export function TeamColumn(props: Props) {
   const team = props.teams[props.activeIdx];
   const selectable = !!props.onSelectMember;
+  const reorderable = !!props.onMemberReorder;
 
   return (
     <div className="team-col">
@@ -53,14 +58,24 @@ export function TeamColumn(props: Props) {
           return (
             <div
               key={i}
-              className={`member${active ? ' active' : ''}${selectable ? '' : ' member--static'}`}
+              className={`member${active ? ' active' : ''}${selectable ? '' : ' member--static'}${reorderable ? ' member--drag' : ''}`}
               onClick={selectable ? () => props.onSelectMember!(i) : undefined}
+              draggable={reorderable || undefined}
+              onDragStart={reorderable ? (e) => { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; } : undefined}
+              onDragOver={reorderable ? (e) => e.preventDefault() : undefined}
+              onDrop={reorderable ? (e) => {
+                e.preventDefault();
+                const from = Number(e.dataTransfer.getData('text/plain'));
+                if (!Number.isNaN(from)) props.onMemberReorder!(from, i);
+              } : undefined}
+              title={reorderable ? 'Drag onto an active target to bring it to the front' : undefined}
             >
               <img
                 className="member-sprite"
                 src={spriteUrl(m.megaForme ?? m.species)}
                 alt=""
                 loading="lazy"
+                draggable={false}
                 onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
               />
               <span className="member-name">{label}</span>

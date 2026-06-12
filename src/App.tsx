@@ -270,6 +270,7 @@ export default function App() {
           onImportPhoto={() => setPhotoSide('enemy')}
           onAddMember={addEnemyMember}
           onRemoveMember={removeEnemyMember}
+          onMemberReorder={swapEnemyMembers}
           addLabel="+ Add target"
         />
       </main>
