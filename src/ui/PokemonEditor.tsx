@@ -185,27 +185,28 @@ export function PokemonEditor({
         onChange={(statPoints) => patch({ statPoints })}
       />
 
-      {role === 'attacker' && (
-        <div className="moves-block">
-          <span className="block-label">Moves</span>
-          <div className="moves-grid">
-            {[0, 1, 2, 3].map((i) => (
-              <Combobox
-                key={i}
-                value={set.moves?.[i] ?? ''}
-                onChange={(v) => setMove(i, v)}
-                listId={movesList}
-                placeholder={`Move ${i + 1}…`}
-              />
-            ))}
-          </div>
-          {learnMoves.length > 0 && (
-            <datalist id={movesListId}>
-              {learnMoves.map((m) => <option key={m} value={m} />)}
-            </datalist>
-          )}
+      {/* Moves are shown for both sides now: the attacker's drive the damage to
+          each target, and a defender's drive the "incoming" damage back to your
+          active Pokémon (see DefenderCard). */}
+      <div className="moves-block">
+        <span className="block-label">{role === 'attacker' ? 'Moves' : 'Moves (used for incoming damage)'}</span>
+        <div className="moves-grid">
+          {[0, 1, 2, 3].map((i) => (
+            <Combobox
+              key={i}
+              value={set.moves?.[i] ?? ''}
+              onChange={(v) => setMove(i, v)}
+              listId={movesList}
+              placeholder={`Move ${i + 1}…`}
+            />
+          ))}
         </div>
-      )}
+        {learnMoves.length > 0 && (
+          <datalist id={movesListId}>
+            {learnMoves.map((m) => <option key={m} value={m} />)}
+          </datalist>
+        )}
+      </div>
 
       <BattleState
         boosts={set.boosts ?? {}}
