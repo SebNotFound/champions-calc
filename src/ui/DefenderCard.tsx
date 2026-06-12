@@ -11,12 +11,24 @@ import { useMemo } from 'react';
 import type { Field } from '@smogon/calc';
 import { PokemonEditor } from './PokemonEditor';
 import { DamageBar } from './widgets';
-import { buildPokemon, calcOne } from '../champions';
+import { buildPokemon, calcOne, makeField } from '../champions';
 import type { ChampionsSet, DamageSummary } from '../champions';
 import type { Pokemon } from '@smogon/calc';
 
 interface MoveResult extends DamageSummary {
   move: string;
+}
+
+/** One damage line: move name, bar, % range and KO chance. */
+function ResultRow({ r }: { r: MoveResult }) {
+  return (
+    <div className="result-row">
+      <span className="result-move" title={r.move}>{r.move}</span>
+      <DamageBar minPercent={r.minPercent} maxPercent={r.maxPercent} />
+      <span className="result-pct">{r.minPercent}–{r.maxPercent}%</span>
+      {r.koChance && <span className="result-ko">{r.koChance}</span>}
+    </div>
+  );
 }
 
 interface Props {
@@ -43,17 +55,39 @@ export function DefenderCard({ set, onChange, onRemove, attacker, attackerMoves,
     }
   }, [set]);
 
+  const empty = (move: string): MoveResult =>
+    ({ move, minPercent: 0, maxPercent: 0, minDamage: 0, maxDamage: 0, defenderMaxHP: 0, koChance: '', rolls: [] });
+
+  // Outgoing: your attacker's moves resolved against this target.
   const results = useMemo<MoveResult[]>(() => {
     if (!attacker || !defender) return [];
     return attackerMoves.map((move) => {
       try {
-        const r = calcOne(attacker, defender, move, field);
-        return { move, ...r };
+        return { move, ...calcOne(attacker, defender, move, field) };
       } catch {
-        return { move, minPercent: 0, maxPercent: 0, minDamage: 0, maxDamage: 0, defenderMaxHP: 0, koChance: '', rolls: [] };
+        return empty(move);
       }
     });
   }, [attacker, defender, attackerMoves, field]);
+
+  // Incoming: this target's own moves resolved back against your attacker — the
+  // other half of the matchup. The screens/Helping Hand in `field` belong to the
+  // offensive direction, so incoming uses only the shared weather/terrain.
+  const incomingMoves = useMemo(
+    () => Array.from(new Set((set.moves ?? []).map((m) => m.trim()).filter(Boolean))),
+    [set.moves],
+  );
+  const incomingField = useMemo(() => makeField({ weather: field.weather, terrain: field.terrain }), [field]);
+  const incoming = useMemo<MoveResult[]>(() => {
+    if (!attacker || !defender) return [];
+    return incomingMoves.map((move) => {
+      try {
+        return { move, ...calcOne(defender, attacker, move, incomingField) };
+      } catch {
+        return empty(move);
+      }
+    });
+  }, [attacker, defender, incomingMoves, incomingField]);
 
   return (
     <div
@@ -80,17 +114,22 @@ export function DefenderCard({ set, onChange, onRemove, attacker, attackerMoves,
 
       <div className="results">
         {!attacker && <p className="results-hint">Set an attacker species to see damage.</p>}
-        {attacker && attackerMoves.length === 0 && (
-          <p className="results-hint">Add a move to the attacker.</p>
+        {attacker && defender && (
+          <>
+            <div className="result-group">
+              <span className="result-dir">You → {set.species}</span>
+              {results.length > 0
+                ? results.map((r) => <ResultRow key={`o-${r.move}`} r={r} />)
+                : <p className="results-hint">Add a move to your attacker.</p>}
+            </div>
+            <div className="result-group">
+              <span className="result-dir">{set.species} → your {attacker.name}</span>
+              {incoming.length > 0
+                ? incoming.map((r) => <ResultRow key={`i-${r.move}`} r={r} />)
+                : <p className="results-hint">Add a move to this Pokémon (above).</p>}
+            </div>
+          </>
         )}
-        {attacker && defender && results.map((r) => (
-          <div className="result-row" key={r.move}>
-            <span className="result-move" title={r.move}>{r.move}</span>
-            <DamageBar minPercent={r.minPercent} maxPercent={r.maxPercent} />
-            <span className="result-pct">{r.minPercent}–{r.maxPercent}%</span>
-            {r.koChance && <span className="result-ko">{r.koChance}</span>}
-          </div>
-        ))}
       </div>
     </div>
   );
