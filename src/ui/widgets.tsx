@@ -3,6 +3,7 @@
  */
 import { useMemo } from 'react';
 import { listSpeciesOptions, listMoves, listItems, listAbilities } from '../champions';
+import type { DamageSummary } from '../champions';
 
 // Stable <datalist> ids. We render the actual lists ONCE at the app root (see
 // <SharedDatalists/>) and every Combobox just points at them via `list=`. This
@@ -53,6 +54,22 @@ export function Combobox({ value, onChange, listId, placeholder, className, ...r
       autoComplete="off"
       {...rest}
     />
+  );
+}
+
+/** A single move's damage result (a damage summary tagged with its move name). */
+export type MoveResult = DamageSummary & { move: string };
+
+/** One damage line: move name, bar, % range and KO chance. Shared by the
+ *  offensive (DefenderCard) and incoming (IncomingPanel) readouts. */
+export function ResultRow({ r }: { r: MoveResult }) {
+  return (
+    <div className="result-row">
+      <span className="result-move" title={r.move}>{r.move}</span>
+      <DamageBar minPercent={r.minPercent} maxPercent={r.maxPercent} />
+      <span className="result-pct">{r.minPercent}–{r.maxPercent}%</span>
+      {r.koChance && <span className="result-ko">{r.koChance}</span>}
+    </div>
   );
 }
 
