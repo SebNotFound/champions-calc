@@ -121,6 +121,23 @@ describe('custom Champions mega abilities', () => {
   });
 });
 
+describe('current-HP-fraction moves (Super Fang etc.)', () => {
+  it('Super Fang deals ~half the target’s HP (the engine reports 0 on its own)', () => {
+    const noivern = buildPokemon(set({ species: 'Noivern' }));
+    const chomp = buildPokemon(set({ species: 'Garchomp' })); // 183 HP, takes Normal damage
+    const r = calcOne(noivern, chomp, 'Super Fang');
+    expect(r.maxDamage).toBe(Math.floor(183 / 2)); // 91
+    expect(r.maxPercent).toBeGreaterThan(49);
+    expect(r.maxPercent).toBeLessThan(51);
+  });
+
+  it('Super Fang does nothing to a Ghost (Normal immunity is respected)', () => {
+    const noivern = buildPokemon(set({ species: 'Noivern' }));
+    const ghost = buildPokemon(set({ species: 'Gholdengo' })); // Steel/Ghost
+    expect(calcOne(noivern, ghost, 'Super Fang').maxDamage).toBe(0);
+  });
+});
+
 describe('multi-target (spread) calc', () => {
   it('returns one summary per defender', () => {
     const attacker = buildPokemon(

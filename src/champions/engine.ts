@@ -146,10 +146,39 @@ export interface DamageSummary {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
+type GameTypeName = CalcResult['move']['type'];
+
+/**
+ * Moves that deal a fraction of the target's CURRENT HP. @smogon/calc models
+ * these as 0-BP moves (it doesn't implement the HP-fraction mechanic), so it
+ * reports 0 damage — we compute them ourselves in {@link summarize}.
+ */
+const HP_FRACTION_MOVES = new Map<string, number>([
+  ['Super Fang', 1 / 2],
+  ["Nature's Madness", 1 / 2],
+  ['Ruination', 1 / 2],
+]);
+
+/** Total type effectiveness of an attacking type vs a defender's typing (0 = immune). */
+function typeMultiplier(moveType: GameTypeName, defenderTypes: readonly GameTypeName[]): number {
+  const atk = getGen().types.get(toID(moveType));
+  if (!atk) return 1;
+  return defenderTypes.reduce((mult, t) => mult * (atk.effectiveness[t] ?? 1), 1);
+}
+
 /** Distil a raw engine result into the numbers the UI actually shows. */
 export function summarize(result: CalcResult): DamageSummary {
   const defenderMaxHP = result.defender.maxHP();
-  const [min, max] = result.range();
+  let [min, max] = result.range();
+
+  // @smogon/calc reports 0 for current-HP-fraction moves (it treats them as
+  // 0 BP). Model them: a fraction of the defender's current HP — but still 0
+  // against a type that's immune to the move (e.g. Super Fang vs a Ghost).
+  const fraction = HP_FRACTION_MOVES.get(result.move.name);
+  if (fraction !== undefined && max === 0 && typeMultiplier(result.move.type, result.defender.types) > 0) {
+    min = max = Math.max(1, Math.floor(result.defender.curHP() * fraction));
+  }
+
   let koChance = '';
   try {
     koChance = result.kochance().text ?? '';
