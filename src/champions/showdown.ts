@@ -22,24 +22,28 @@
  *   - Protect
  */
 import { emptySpread, STAT_KEYS, MAX_SP_PER_STAT, MAX_TOTAL_SP } from './stats';
+import { resolveSpeciesName } from './engine';
 import type { ChampionsSet, NatureName, StatKey, StatSpread, StatTable } from './types';
 
 const EV_LABELS: Record<string, StatKey> = {
-  HP: 'hp', Atk: 'atk', Def: 'def', SpA: 'spa', SpD: 'spd', Spe: 'spe',
+  hp: 'hp', atk: 'atk', def: 'def', spa: 'spa', spd: 'spd', spe: 'spe',
 };
 
-const NATURE_SET = new Set<string>([
-  'Adamant', 'Bashful', 'Bold', 'Brave', 'Calm', 'Careful', 'Docile', 'Gentle',
-  'Hardy', 'Hasty', 'Impish', 'Jolly', 'Lax', 'Lonely', 'Mild', 'Modest',
-  'Naive', 'Naughty', 'Quiet', 'Quirky', 'Rash', 'Relaxed', 'Sassy', 'Serious', 'Timid',
-]);
+const NATURE_BY_ID = new Map<string, NatureName>(
+  ([
+    'Adamant', 'Bashful', 'Bold', 'Brave', 'Calm', 'Careful', 'Docile', 'Gentle',
+    'Hardy', 'Hasty', 'Impish', 'Jolly', 'Lax', 'Lonely', 'Mild', 'Modest',
+    'Naive', 'Naughty', 'Quiet', 'Quirky', 'Rash', 'Relaxed', 'Sassy', 'Serious', 'Timid',
+  ] as NatureName[]).map((n) => [n.toLowerCase(), n]),
+);
 
-/** Parse a "4 HP / 252 Atk / 252 Spe" style line into a partial stat table. */
+/** Parse a "4 HP / 252 Atk / 252 Spe" style line into a partial stat table.
+ *  Tolerant of casing and odd spacing in hand-pasted teams. */
 function parseStatLine(line: string): Partial<StatTable> {
   const out: Partial<StatTable> = {};
   for (const part of line.split('/')) {
-    const m = part.trim().match(/^(\d+)\s+(HP|Atk|Def|SpA|SpD|Spe)$/);
-    if (m) out[EV_LABELS[m[2]]] = Number(m[1]);
+    const m = part.trim().match(/^(\d+)\s+(HP|Atk|Def|SpA|SpD|Spe)$/i);
+    if (m) out[EV_LABELS[m[2].toLowerCase()]] = Number(m[1]);
   }
   return out;
 }
@@ -85,14 +89,12 @@ function parseSet(block: string): ChampionsSet | null {
     header = header.slice(0, at).trim();
   }
 
-  let species = header;
+  // Strip a trailing gender marker first, then unwrap a "Nick (Species)" nickname.
+  header = header.replace(/\s*\((?:M|F)\)\s*$/i, '').trim();
   const paren = header.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
-  if (paren) {
-    const inside = paren[2].trim();
-    // "(M)"/"(F)" is a gender marker; anything else is the real species in parens.
-    species = inside === 'M' || inside === 'F' ? paren[1].trim() : inside;
-  }
-  species = species.replace(/\s*\((?:M|F)\)\s*$/, '').trim();
+  let species = paren ? paren[2].trim() : header;
+  // Snap to the canonical dex name (forgiving of casing/spacing/typos).
+  species = resolveSpeciesName(species);
   if (!species) return null;
 
   let ability: string | undefined;
@@ -101,12 +103,13 @@ function parseSet(block: string): ChampionsSet | null {
   const moves: string[] = [];
 
   for (const line of lines.slice(1)) {
-    if (line.startsWith('Ability:')) ability = line.slice(8).trim();
-    else if (line.startsWith('EVs:')) evs = parseStatLine(line.slice(4));
+    const lower = line.toLowerCase();
+    if (lower.startsWith('ability:')) ability = line.slice(line.indexOf(':') + 1).trim();
+    else if (lower.startsWith('evs:')) evs = parseStatLine(line.slice(line.indexOf(':') + 1));
     else if (line.startsWith('- ')) moves.push(line.slice(2).trim());
-    else if (line.endsWith(' Nature')) {
-      const n = line.replace(' Nature', '').trim();
-      if (NATURE_SET.has(n)) nature = n as NatureName;
+    else if (lower.endsWith(' nature')) {
+      const n = NATURE_BY_ID.get(line.slice(0, -7).trim().toLowerCase());
+      if (n) nature = n;
     }
     // Level / Tera Type / IVs / Shiny / Happiness etc. are intentionally ignored.
   }
