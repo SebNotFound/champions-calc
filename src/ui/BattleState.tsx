@@ -1,7 +1,7 @@
 /**
- * Optional in-battle modifiers: stat-stage boosts (e.g. +2 from Swords Dance)
- * and major status (Burn halves physical damage; others matter for Facade/Hex).
- * Tucked inside a <details> so it stays out of the way until needed.
+ * Optional in-battle stat-stage boosts (e.g. +2 Atk from Swords Dance). Tucked
+ * inside a <details> so it stays out of the way until needed. Major status lives
+ * up in the editor's field grid (next to Ability) for quick access.
  */
 import type { StatTable } from '../champions';
 
@@ -15,31 +15,18 @@ const BOOST_STATS: { key: keyof StatTable; label: string }[] = [
   { key: 'spe', label: 'Spe' },
 ];
 
-const STATUSES: [string, string][] = [
-  ['', 'Healthy'],
-  ['brn', 'Burned'],
-  ['par', 'Paralyzed'],
-  ['psn', 'Poisoned'],
-  ['tox', 'Badly Poisoned'],
-  ['slp', 'Asleep'],
-  ['frz', 'Frozen'],
-];
-
 interface Props {
   boosts: Boosts;
-  status?: string;
   onBoosts: (next: Boosts) => void;
-  onStatus: (next: string | undefined) => void;
 }
 
-export function BattleState({ boosts, status, onBoosts, onStatus }: Props) {
-  const activeCount =
-    BOOST_STATS.filter(({ key }) => (boosts[key] ?? 0) !== 0).length + (status ? 1 : 0);
+export function BattleState({ boosts, onBoosts }: Props) {
+  const activeCount = BOOST_STATS.filter(({ key }) => (boosts[key] ?? 0) !== 0).length;
 
   return (
     <details className="battle-state">
       <summary>
-        Battle state{activeCount > 0 ? ` (${activeCount})` : ''}
+        Stat boosts{activeCount > 0 ? ` (${activeCount})` : ''}
       </summary>
       <div className="boost-row">
         {BOOST_STATS.map(({ key, label }) => (
@@ -58,14 +45,6 @@ export function BattleState({ boosts, status, onBoosts, onStatus }: Props) {
           </label>
         ))}
       </div>
-      <label className="status-row">
-        <span>Status</span>
-        <select value={status ?? ''} onChange={(e) => onStatus(e.target.value || undefined)}>
-          {STATUSES.map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
-      </label>
     </details>
   );
 }
