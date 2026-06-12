@@ -28,3 +28,4 @@ samples/crops
 *.njsproj
 *.sln
 *.sw?
+samples/derived-*
