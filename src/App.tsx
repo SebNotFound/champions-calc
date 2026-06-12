@@ -20,7 +20,7 @@ import { SharedDatalists } from './ui/widgets';
 import { ImportDialog } from './ui/ImportDialog';
 import { PokepasteDialog } from './ui/PokepasteDialog';
 import {
-  buildPokemon, defaultSet, CHAMPIONS_FORMAT,
+  buildPokemon, defaultSet, autofillSet, CHAMPIONS_FORMAT,
   loadState, saveState, seedState, emptyTeam, MAX_TEAMS, MAX_TEAM_SIZE,
 } from './champions';
 import type { ChampionsSet, Team, SavedState } from './champions';
@@ -117,13 +117,15 @@ export default function App() {
   };
 
   // ---- Team Preview photo import (Phase 2): fills both sides ----
+  // Detected Pokémon arrive with their most-used Champions set (same fill as
+  // picking a species by hand), so they're battle-ready, not blank.
   const handlePhotoImport = (result: RecognitionResult) => {
     if (result.player.length) {
-      updateMembers('playerTeams', playerTeamIdx, () => result.player.slice(0, 6).map((d) => defaultSet(d.species)));
+      updateMembers('playerTeams', playerTeamIdx, () => result.player.slice(0, 6).map((d) => autofillSet(d.species)));
       setAttackerIdx(0);
     }
     if (result.enemy.length) {
-      updateMembers('enemyTeams', enemyTeamIdx, () => result.enemy.slice(0, 6).map((d) => defaultSet(d.species)));
+      updateMembers('enemyTeams', enemyTeamIdx, () => result.enemy.slice(0, 6).map((d) => autofillSet(d.species)));
     }
   };
 

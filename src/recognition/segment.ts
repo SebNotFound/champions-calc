@@ -40,22 +40,40 @@ export function detectEnemyColumn(img: Img): [number, number] {
 }
 
 /**
- * Split the red column into six evenly-spaced slot y-ranges. The six panels are
- * equal height; we find the "clean" red runs (median height, excluding the
- * header, the Standing-By button and any merged double-runs), derive the first
- * panel's top and the pitch, then lay out six slots.
+ * Split the red column into six evenly-spaced slot y-ranges.
+ *
+ * Primary path: the standard Team Preview shows six panels with clean gaps, so
+ * we read the red row-runs and lay six slots on the panel pitch — this aligns
+ * tightly to the real panel edges (best for matching). If that doesn't yield a
+ * clean six-panel layout (e.g. the panels merge in a smaller shot), we fall back
+ * to fitting an even six-panel "comb" to the red profile. Anything that isn't a
+ * Team Preview just produces low-confidence slots, which the caller drops.
  */
 export function detectSlots(img: Img, x0: number, x1: number): Array<[number, number]> {
+  const byRuns = detectSlotsByRuns(img, x0, x1);
+  const clean = byRuns.filter(([a, b]) => a >= 0 && b <= img.height && b - a >= 8).length;
+  return clean >= 5 ? byRuns : detectSlotsByComb(img, x0, x1);
+}
+
+/** Red row-count for each row within the panel column. */
+function redRowProfile(img: Img, x0: number, x1: number): Float64Array {
   const { data, width: W, height: H } = img;
-  const rowCount = new Array<number>(H).fill(0);
+  const rows = new Float64Array(H);
   for (let y = 0; y < H; y++) {
     let c = 0;
     for (let x = x0; x <= x1; x++) {
       const i = (y * W + x) * 4;
       if (isPanelRed(data[i], data[i + 1], data[i + 2])) c++;
     }
-    rowCount[y] = c;
+    rows[y] = c;
   }
+  return rows;
+}
+
+/** Lay six slots on the pitch derived from the clean (median-height) red runs. */
+function detectSlotsByRuns(img: Img, x0: number, x1: number): Array<[number, number]> {
+  const { height: H } = img;
+  const rowCount = redRowProfile(img, x0, x1);
   const rowThresh = (x1 - x0) * 0.3;
   const raw: Array<[number, number]> = [];
   let s = -1;
@@ -87,6 +105,52 @@ export function detectSlots(img: Img, x0: number, x1: number): Array<[number, nu
     Math.round(firstTop + i * pitch),
     Math.round(firstTop + i * pitch + medianH),
   ]);
+}
+
+/**
+ * Fallback: fit an even six-panel comb to the red profile. Search the period
+ * (pitch) and offset that maximise red DENSITY inside the six panel windows
+ * while keeping the gaps between them empty. Density (not raw totals) keeps a
+ * wider comb from winning just by sweeping in more area.
+ */
+function detectSlotsByComb(img: Img, x0: number, x1: number): Array<[number, number]> {
+  const { height: H } = img;
+  const rowRed = redRowProfile(img, x0, x1);
+  let totalRed = 0;
+  for (let y = 0; y < H; y++) totalRed += rowRed[y];
+  if (totalRed === 0) return [];
+
+  const pref = new Float64Array(H + 1);
+  for (let y = 0; y < H; y++) pref[y + 1] = pref[y] + rowRed[y];
+  const sum = (a: number, b: number) => pref[Math.min(H, Math.max(0, b))] - pref[Math.min(H, Math.max(0, a))];
+
+  const minPitch = Math.max(8, Math.floor(H / 14));
+  const maxPitch = Math.max(minPitch + 1, Math.floor(H / 6));
+  let best: { firstTop: number; pitch: number } | null = null;
+  let bestScore = -Infinity;
+  for (let pitch = minPitch; pitch <= maxPitch; pitch++) {
+    const win = Math.round(pitch * 0.8);
+    const gap = pitch - win;
+    const maxTop = H - (5 * pitch + win);
+    for (let firstTop = 0; firstTop <= maxTop; firstTop += 2) {
+      let inside = 0, gaps = 0;
+      for (let k = 0; k < 6; k++) {
+        const top = firstTop + k * pitch;
+        inside += sum(top, top + win);
+        if (k < 5) gaps += sum(top + win, top + pitch);
+      }
+      const score = inside / (6 * win) - (gap > 0 ? gaps / (5 * gap) : 0);
+      if (score > bestScore) { bestScore = score; best = { firstTop, pitch }; }
+    }
+  }
+  if (!best) return [];
+
+  const { firstTop, pitch } = best;
+  const slotH = Math.round(pitch * 0.9);
+  return Array.from({ length: 6 }, (_, k): [number, number] => {
+    const top = firstTop + k * pitch;
+    return [top, Math.min(top + slotH, H)];
+  });
 }
 
 /** Copy a sub-rectangle into a fresh (fully opaque) RGBA buffer. */
