@@ -18,10 +18,8 @@ import {
   speciesMoves,
   getSpeciesBaseStats,
   getSpeciesTypes,
-  getDefaultAbility,
   getMega,
-  getUsage,
-  emptySpread,
+  autofillSet,
   spriteUrl,
 } from '../champions';
 import type { ChampionsSet, NatureName, StatTable } from '../champions';
@@ -84,20 +82,14 @@ export function PokemonEditor({
     }
 
     // A valid pick auto-fills the most-used Champions set (moves, item, ability,
-    // nature, Stat Points) when we have usage data. Edits then stick — autofill
-    // only re-runs when you pick a *different* species/Mega.
-    const usage = getUsage(megaForme ?? species) ?? getUsage(species);
-    const moves = usage ? [...usage.moves] : [];
-    while (moves.length < 4) moves.push('');
+    // nature, Stat Points) — the same fill as Team Preview import. Edits then
+    // stick: autofill only re-runs when you pick a *different* species/Mega.
+    const filled = autofillSet(species, megaForme);
     patch({
-      species,
-      megaForme,
+      ...filled,
       // A Mega forces its own ability and holds no item.
-      ability: pickedMega ? pickedMega.ability : (usage?.ability ?? getDefaultAbility(species) ?? undefined),
-      item: pickedMega ? undefined : usage?.item,
-      nature: usage?.nature ?? 'Hardy',
-      statPoints: usage?.statPoints ?? emptySpread(),
-      moves: moves.slice(0, 4),
+      ability: pickedMega ? pickedMega.ability : filled.ability,
+      item: pickedMega ? undefined : filled.item,
     });
   };
 

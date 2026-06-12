@@ -23,6 +23,12 @@ export interface DetectedPokemon {
 export interface RecognitionResult {
   player: DetectedPokemon[];
   enemy: DetectedPokemon[];
+  /**
+   * Enemy slots the engine matched too weakly to auto-fill, but whose best
+   * guess is still worth offering — the UI shows these as one-click "add"
+   * chips rather than filling them silently.
+   */
+  uncertain?: DetectedPokemon[];
   /** Which engine produced this result. */
   engine: 'local' | 'claude';
   /** Non-fatal notes to surface to the user (e.g. "2 mons were low-confidence"). */

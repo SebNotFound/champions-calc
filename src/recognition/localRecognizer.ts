@@ -107,36 +107,29 @@ export class LocalRecognizer implements TeamPreviewRecognizer {
     const slots = detectSlots(img, x0, x1);
     const spriteW = Math.round((x1 - x0) * SPRITE_WIDTH_FRACTION);
     const enemy: DetectedPokemon[] = [];
-    const unsure: string[] = [];
+    const uncertain: DetectedPokemon[] = [];
 
     for (const [y0, y1] of slots) {
       const ch = y1 - y0;
       if (ch < 8 || y0 < 0 || y1 > img.height) continue;
       const rgba = removeBackground(cropRGBA(img, x0, y0, spriteW, ch), spriteW, ch);
       const { species, sim } = bestMatch(rgba, spriteW, ch);
-      if (sim >= MATCH_THRESHOLD) {
-        enemy.push({
-          side: 'enemy',
-          species: resolveSpeciesName(species),
-          confidence: sim,
-          box: { x: x0, y: y0, w: spriteW, h: ch },
-        });
-      } else if (sim >= MENTION_THRESHOLD) {
-        // Too shaky to fill automatically, but a plausible guess worth showing.
-        unsure.push(`${resolveSpeciesName(species)} (${Math.round(sim * 100)}%)`);
-      }
+      const detected: DetectedPokemon = {
+        side: 'enemy',
+        species: resolveSpeciesName(species),
+        confidence: sim,
+        box: { x: x0, y: y0, w: spriteW, h: ch },
+      };
+      if (sim >= MATCH_THRESHOLD) enemy.push(detected);
+      else if (sim >= MENTION_THRESHOLD) uncertain.push(detected); // shaky — offer, don't fill
     }
 
     const notes: string[] = [];
-    if (!enemy.length && !unsure.length) {
-      notes.push('No enemy Pokémon could be matched on-device. Try "More precise" (Claude).');
+    if (!enemy.length && !uncertain.length) {
+      notes.push('Couldn’t match any enemy Pokémon on-device — add them below, or try “More precise”.');
     }
-    if (unsure.length) {
-      const s = unsure.length > 1 ? 's' : '';
-      notes.push(`Not sure about ${unsure.length} slot${s} — best guess${unsure.length > 1 ? 'es' : ''}: ${unsure.join(', ')}. Add ${unsure.length > 1 ? 'them' : 'it'} manually if right, or try "More precise".`);
-    }
-    notes.push('Your own (blue) team isn’t read on-device yet — load a saved team or fill it in.');
+    notes.push('Your own (blue) team isn’t read on-device yet — load a saved team or add it below.');
 
-    return { player: [], enemy, engine: 'local', notes };
+    return { player: [], enemy, uncertain, engine: 'local', notes };
   }
 }
