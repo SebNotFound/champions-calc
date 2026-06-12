@@ -13,10 +13,13 @@ interface Props {
   onAdd: () => void;
   onRename: (name: string) => void;
   onDelete: () => void;
-  onImport: () => void;
+  /** Import from pasted pokepaste / Showdown text. */
+  onImportText: () => void;
+  /** Import from a screenshot / photo. */
+  onImportPhoto: () => void;
 }
 
-export function TeamSlots({ teams, activeIdx, onSelect, onAdd, onRename, onDelete, onImport }: Props) {
+export function TeamSlots({ teams, activeIdx, onSelect, onAdd, onRename, onDelete, onImportText, onImportPhoto }: Props) {
   const active = teams[activeIdx];
   return (
     <div className="team-slots">
@@ -42,8 +45,12 @@ export function TeamSlots({ teams, activeIdx, onSelect, onAdd, onRename, onDelet
           onChange={(e) => onRename(e.target.value)}
           aria-label="Team name"
         />
-        <button onClick={onImport} title="Import a pokepaste / Showdown team">Import</button>
         <button onClick={onDelete} disabled={teams.length <= 1} title="Delete this team" aria-label="Delete team">🗑</button>
+      </div>
+      <div className="team-import-row">
+        <span className="import-label">Import</span>
+        <button className="import-btn" onClick={onImportText} title="Paste a pokepaste / Showdown team">📋 Text</button>
+        <button className="import-btn" onClick={onImportPhoto} title="From a screenshot or photo">📷 Photo</button>
       </div>
     </div>
   );

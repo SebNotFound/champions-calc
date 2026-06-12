@@ -39,6 +39,10 @@ export interface RecognitionResult {
 export interface TeamPreviewRecognizer {
   readonly id: 'local' | 'claude';
   readonly label: string;
-  /** Analyze an image and return the detected teams. */
-  recognize(image: Blob): Promise<RecognitionResult>;
+  /**
+   * Analyze an image for ONE side and return the detected teams. `side` tells
+   * the engine which panels to read: 'player' = blue (yours), 'enemy' = red
+   * (theirs). The matching side of the result is the one to use.
+   */
+  recognize(image: Blob, side: Side): Promise<RecognitionResult>;
 }

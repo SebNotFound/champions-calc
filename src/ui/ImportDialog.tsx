@@ -1,33 +1,35 @@
 /**
- * Team Preview import dialog.
+ * Photo-import dialog for ONE side's team.
  *
- * You drop a screenshot or phone photo of the Team Preview; the chosen engine
- * detects the opponent's Pokémon (red panels). Detection then opens a review
- * where you assemble the final enemy team before anything is applied:
- *   - confident matches are pre-loaded (remove any that are wrong),
- *   - weaker "best guesses" are one click away from being added,
- *   - and you can search any Pokémon by name to add it manually — which is also
- *     the fallback when a photo isn't recognised at all.
+ * Opened from a team box's "Photo" button with `side` set to that box. You drop
+ * a screenshot/photo; the chosen engine reads that side's panels (your blue / the
+ * enemy's red) and you assemble the final team in a review before it's applied:
+ *   - confident matches preload as a removable draft,
+ *   - weaker "best guesses" are one tap to add,
+ *   - and a name search adds any Pokémon manually (also the fallback when nothing
+ *     is detected).
  *
- * The free on-device engine is the default; "More precise" switches to the
- * Claude vision engine (needs an API key, and also reads your own blue side).
- * The chosen engine and API key are remembered in the browser.
+ * The free on-device engine is the default; "More precise" switches to Claude
+ * vision (needs an API key). The engine choice and key are remembered.
  */
 import { useRef, useState } from 'react';
 import { LocalRecognizer, ClaudeRecognizer } from '../recognition';
-import type { DetectedPokemon, RecognitionResult } from '../recognition';
+import type { RecognitionResult } from '../recognition';
 import { spriteUrl, resolveSpeciesName, getSpeciesBaseStats } from '../champions';
 import { Combobox, DATALIST } from './widgets';
 
+type Side = 'player' | 'enemy';
+
 interface Props {
-  open: boolean;
+  /** Which team box opened the dialog; null = closed. */
+  side: Side | null;
   onClose: () => void;
-  onImport: (result: RecognitionResult) => void;
+  onImport: (side: Side, species: string[]) => void;
 }
 
 const MAX_TEAM = 6;
 
-export function ImportDialog({ open, onClose, onImport }: Props) {
+export function ImportDialog({ side, onClose, onImport }: Props) {
   const [image, setImage] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [precise, setPrecise] = useState(() => localStorage.getItem('champions-calc/recognizer') === 'claude');
@@ -35,11 +37,14 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<RecognitionResult | null>(null);
-  const [draft, setDraft] = useState<string[]>([]); // enemy species being assembled
+  const [draft, setDraft] = useState<string[]>([]);
   const [manual, setManual] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  if (!open) return null;
+  if (!side) return null;
+
+  const isPlayer = side === 'player';
+  const sideLabel = isPlayer ? 'your team' : 'the enemy team';
 
   const reset = () => { setResult(null); setDraft([]); setManual(''); };
 
@@ -57,9 +62,9 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
     setError(null);
     try {
       const recognizer = precise ? new ClaudeRecognizer(apiKey) : new LocalRecognizer();
-      const res = await recognizer.recognize(image);
+      const res = await recognizer.recognize(image, side);
       setResult(res);
-      setDraft(res.enemy.map((d) => d.species));
+      setDraft((isPlayer ? res.player : res.enemy).map((d) => d.species));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -67,23 +72,15 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
     }
   };
 
-  const addSpecies = (name: string) => {
+  const addSpecies = (name: string) =>
     setDraft((d) => (d.includes(name) || d.length >= MAX_TEAM ? d : [...d, name]));
-  };
   const removeAt = (i: number) => setDraft((d) => d.filter((_, j) => j !== i));
-
   const addManual = () => {
     const name = resolveSpeciesName(manual.trim());
     if (name && getSpeciesBaseStats(name)) { addSpecies(name); setManual(''); }
   };
 
-  const apply = () => {
-    if (result) {
-      const enemy: DetectedPokemon[] = draft.map((species) => ({ side: 'enemy', species, confidence: 1 }));
-      onImport({ ...result, enemy });
-    }
-    onClose();
-  };
+  const apply = () => { onImport(side, draft); onClose(); };
 
   const guesses = (result?.uncertain ?? []).filter((g) => !draft.includes(g.species));
 
@@ -91,7 +88,7 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-head">
-          <h2>Import from Team Preview</h2>
+          <h2>Import {sideLabel} from a photo</h2>
           <button className="icon-btn" onClick={onClose} aria-label="Close">×</button>
         </div>
 
@@ -101,12 +98,8 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
               Detected with the {result.engine === 'claude' ? 'Claude' : 'on-device'} engine — review, then apply.
             </p>
 
-            {result.player.length > 0 && (
-              <DetectGroup title="Your team (blue)" mons={result.player} />
-            )}
-
             <div className="detect-group">
-              <h3>Opponent team{draft.length > 0 ? ` (${draft.length})` : ''}</h3>
+              <h3>{isPlayer ? 'Your team' : 'Enemy team'}{draft.length > 0 ? ` (${draft.length})` : ''}</h3>
               {draft.length === 0 ? (
                 <p className="detect-empty">Nothing added yet — tap a best guess below or search for a Pokémon.</p>
               ) : (
@@ -173,7 +166,7 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
               {previewUrl ? (
                 <img src={previewUrl} alt="Team Preview" className="dropzone-preview" />
               ) : (
-                <p>Drag &amp; drop a screenshot here, paste it, or <span className="link">click to browse</span>.</p>
+                <p>Drop a {isPlayer ? 'blue (your) ' : 'red (enemy) '}Team Preview screenshot here, paste it, or <span className="link">click to browse</span>.</p>
               )}
               <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={(e) => acceptImage(e.target.files?.[0])} />
             </div>
@@ -208,9 +201,7 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
           {result ? (
             <>
               <button onClick={reset}>Back</button>
-              <button className="primary" onClick={apply} disabled={draft.length === 0 && !result.player.length}>
-                Apply to calculator
-              </button>
+              <button className="primary" onClick={apply} disabled={draft.length === 0}>Apply to calculator</button>
             </>
           ) : (
             <>
@@ -221,23 +212,6 @@ export function ImportDialog({ open, onClose, onImport }: Props) {
             </>
           )}
         </div>
-      </div>
-    </div>
-  );
-}
-
-/** Read-only group of detected mons (used for the player side from Claude). */
-function DetectGroup({ title, mons }: { title: string; mons: DetectedPokemon[] }) {
-  return (
-    <div className="detect-group">
-      <h3>{title}</h3>
-      <div className="detect-chips">
-        {mons.map((d, i) => (
-          <span key={`${d.species}-${i}`} className="detect-chip">
-            <img src={spriteUrl(d.species)} alt="" />
-            {d.species}
-          </span>
-        ))}
       </div>
     </div>
   );

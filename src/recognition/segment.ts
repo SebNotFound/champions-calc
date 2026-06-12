@@ -14,29 +14,49 @@ export interface Img {
   height: number;
 }
 
+/** A pixel colour test (panel background detector). */
+export type ColorTest = (r: number, g: number, b: number) => boolean;
+
 /** The dark-red Champions enemy panel colour (R clearly dominant). */
 export function isPanelRed(r: number, g: number, b: number): boolean {
   return r > 60 && r > g * 1.5 && r > b * 1.35;
 }
 
-/** Find the right-hand red panel column [x0, x1]. */
-export function detectEnemyColumn(img: Img): [number, number] {
+/** The blue/indigo Champions player panel colour (B clearly dominant). */
+export function isPanelBlue(r: number, g: number, b: number): boolean {
+  return b > 70 && b > r * 1.25 && b > g * 1.1;
+}
+
+/** Find the panel column [x0, x1] for a colour, scanning from one side in. */
+export function detectColumn(img: Img, test: ColorTest, side: 'left' | 'right'): [number, number] {
   const { data, width: W, height: H } = img;
   const colCount = new Array<number>(W).fill(0);
   for (let x = 0; x < W; x++) {
     let c = 0;
     for (let y = 0; y < H; y++) {
       const i = (y * W + x) * 4;
-      if (isPanelRed(data[i], data[i + 1], data[i + 2])) c++;
+      if (test(data[i], data[i + 1], data[i + 2])) c++;
     }
     colCount[x] = c;
   }
   const thresh = H * 0.12;
-  let x1 = W - 1;
-  while (x1 > 0 && colCount[x1] < thresh) x1--;
-  let x0 = x1;
-  while (x0 > 0 && colCount[x0 - 1] >= thresh) x0--;
+  if (side === 'right') {
+    let x1 = W - 1;
+    while (x1 > 0 && colCount[x1] < thresh) x1--;
+    let x0 = x1;
+    while (x0 > 0 && colCount[x0 - 1] >= thresh) x0--;
+    return [x0, x1];
+  }
+  let x0 = 0;
+  while (x0 < W - 1 && colCount[x0] < thresh) x0++;
+  let x1 = x0;
+  while (x1 < W - 1 && colCount[x1 + 1] >= thresh) x1++;
   return [x0, x1];
+}
+
+/** Find the right-hand red enemy column [x0, x1]. */
+export function detectEnemyColumn(img: Img): [number, number] {
+  return detectColumn(img, isPanelRed, 'right');
 }
 
 /**
@@ -49,31 +69,31 @@ export function detectEnemyColumn(img: Img): [number, number] {
  * to fitting an even six-panel "comb" to the red profile. Anything that isn't a
  * Team Preview just produces low-confidence slots, which the caller drops.
  */
-export function detectSlots(img: Img, x0: number, x1: number): Array<[number, number]> {
-  const byRuns = detectSlotsByRuns(img, x0, x1);
+export function detectSlots(img: Img, x0: number, x1: number, test: ColorTest = isPanelRed): Array<[number, number]> {
+  const byRuns = detectSlotsByRuns(img, x0, x1, test);
   const clean = byRuns.filter(([a, b]) => a >= 0 && b <= img.height && b - a >= 8).length;
-  return clean >= 5 ? byRuns : detectSlotsByComb(img, x0, x1);
+  return clean >= 5 ? byRuns : detectSlotsByComb(img, x0, x1, test);
 }
 
-/** Red row-count for each row within the panel column. */
-function redRowProfile(img: Img, x0: number, x1: number): Float64Array {
+/** Panel-colour row-count for each row within the column. */
+function rowProfile(img: Img, x0: number, x1: number, test: ColorTest): Float64Array {
   const { data, width: W, height: H } = img;
   const rows = new Float64Array(H);
   for (let y = 0; y < H; y++) {
     let c = 0;
     for (let x = x0; x <= x1; x++) {
       const i = (y * W + x) * 4;
-      if (isPanelRed(data[i], data[i + 1], data[i + 2])) c++;
+      if (test(data[i], data[i + 1], data[i + 2])) c++;
     }
     rows[y] = c;
   }
   return rows;
 }
 
-/** Lay six slots on the pitch derived from the clean (median-height) red runs. */
-function detectSlotsByRuns(img: Img, x0: number, x1: number): Array<[number, number]> {
+/** Lay six slots on the pitch derived from the clean (median-height) panel runs. */
+function detectSlotsByRuns(img: Img, x0: number, x1: number, test: ColorTest): Array<[number, number]> {
   const { height: H } = img;
-  const rowCount = redRowProfile(img, x0, x1);
+  const rowCount = rowProfile(img, x0, x1, test);
   const rowThresh = (x1 - x0) * 0.3;
   const raw: Array<[number, number]> = [];
   let s = -1;
@@ -113,9 +133,9 @@ function detectSlotsByRuns(img: Img, x0: number, x1: number): Array<[number, num
  * while keeping the gaps between them empty. Density (not raw totals) keeps a
  * wider comb from winning just by sweeping in more area.
  */
-function detectSlotsByComb(img: Img, x0: number, x1: number): Array<[number, number]> {
+function detectSlotsByComb(img: Img, x0: number, x1: number, test: ColorTest): Array<[number, number]> {
   const { height: H } = img;
-  const rowRed = redRowProfile(img, x0, x1);
+  const rowRed = rowProfile(img, x0, x1, test);
   let totalRed = 0;
   for (let y = 0; y < H; y++) totalRed += rowRed[y];
   if (totalRed === 0) return [];

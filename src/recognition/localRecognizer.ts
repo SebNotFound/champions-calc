@@ -1,28 +1,29 @@
 import type { DetectedPokemon, RecognitionResult, TeamPreviewRecognizer } from './types';
 import { resolveSpeciesName } from '../champions/engine';
+import type { Side } from '../champions';
 import { spriteThumbnail, normalizeThumb, similarity, decodeThumb } from '../champions/phash';
-import { detectEnemyColumn, detectSlots, cropRGBA, removeBackground, flipH, type Img } from './segment';
+import { detectColumn, detectSlots, cropRGBA, removeBackground, flipH, isPanelRed, type Img } from './segment';
 import rawHashes from '../champions/data/sprite-hashes.json';
 
 /**
  * Free, on-device Team Preview recognizer (the default engine).
  *
- * It reads the ENEMY side (the red panels on the right) — the half that's
- * actually worth automating, since you already know your own team and can load
- * a saved one. The pipeline, validated against real screenshots in
- * scripts/test-recognize.mjs:
+ * Reads the ENEMY (red) side of a Team Preview reliably. The player (blue) side
+ * blends into the blue background, so on-device sprite detection there isn't
+ * dependable yet — `recognize(_, 'player')` returns a note steering you to
+ * Claude (which reads blue via vision), text import, or manual entry. The enemy
+ * pipeline:
  *
  *   1. Decode the image to RGBA on a canvas.
- *   2. Find the red enemy column and split it into six slots (segment.ts).
+ *   2. Find the red column and split it into six slots (segment.ts).
  *   3. Crop each sprite, flood-fill away the panel background.
- *   4. Reduce to a normalized grayscale thumbnail and match it (and its mirror,
- *      since enemy sprites face the player) against the reference set by cosine
- *      similarity (phash.ts).
- *   5. Keep matches above a confidence threshold; leave the rest blank so a
- *      shaky guess never silently fills the wrong Pokémon.
+ *   4. Reduce to a normalized grayscale thumbnail and match it (and its mirror)
+ *      against the reference set by cosine similarity (phash.ts).
+ *   5. Keep matches above a confidence threshold; weaker ones become "best
+ *      guesses" so a shaky guess never silently fills the wrong Pokémon.
  *
  * It's tuned for the standard doubles Team Preview. For odd layouts, distorted
- * phone photos, or the player side, switch on "More precise" (Claude).
+ * phone photos, or your team's full stat/move report, use "More precise" (Claude).
  */
 
 interface RefVec {
@@ -92,19 +93,24 @@ export class LocalRecognizer implements TeamPreviewRecognizer {
   readonly id = 'local' as const;
   readonly label = 'On-device (free)';
 
-  async recognize(image: Blob): Promise<RecognitionResult> {
-    const img = await decodeToImg(image);
-    const [x0, x1] = detectEnemyColumn(img);
-    if (x1 - x0 < 20) {
+  async recognize(image: Blob, side: Side): Promise<RecognitionResult> {
+    if (side === 'player') {
       return {
-        player: [],
-        enemy: [],
-        engine: 'local',
-        notes: ['Could not find the red enemy panel — is this a Team Preview screenshot? Try "More precise".'],
+        player: [], enemy: [], uncertain: [], engine: 'local',
+        notes: ['On-device can’t read your own (blue) side reliably yet — use “More precise” (Claude), import from text, or add your Pokémon below.'],
       };
     }
 
-    const slots = detectSlots(img, x0, x1);
+    const img = await decodeToImg(image);
+    const [x0, x1] = detectColumn(img, isPanelRed, 'right');
+    if (x1 - x0 < 20) {
+      return {
+        player: [], enemy: [], engine: 'local',
+        notes: ['Couldn’t find the red enemy panels — is this a Team Preview screenshot? Add them below, or try “More precise”.'],
+      };
+    }
+
+    const slots = detectSlots(img, x0, x1, isPanelRed);
     const spriteW = Math.round((x1 - x0) * SPRITE_WIDTH_FRACTION);
     const enemy: DetectedPokemon[] = [];
     const uncertain: DetectedPokemon[] = [];
@@ -114,21 +120,20 @@ export class LocalRecognizer implements TeamPreviewRecognizer {
       if (ch < 8 || y0 < 0 || y1 > img.height) continue;
       const rgba = removeBackground(cropRGBA(img, x0, y0, spriteW, ch), spriteW, ch);
       const { species, sim } = bestMatch(rgba, spriteW, ch);
-      const detected: DetectedPokemon = {
+      const mon: DetectedPokemon = {
         side: 'enemy',
         species: resolveSpeciesName(species),
         confidence: sim,
         box: { x: x0, y: y0, w: spriteW, h: ch },
       };
-      if (sim >= MATCH_THRESHOLD) enemy.push(detected);
-      else if (sim >= MENTION_THRESHOLD) uncertain.push(detected); // shaky — offer, don't fill
+      if (sim >= MATCH_THRESHOLD) enemy.push(mon);
+      else if (sim >= MENTION_THRESHOLD) uncertain.push(mon); // shaky — offer, don't fill
     }
 
     const notes: string[] = [];
     if (!enemy.length && !uncertain.length) {
       notes.push('Couldn’t match any enemy Pokémon on-device — add them below, or try “More precise”.');
     }
-    notes.push('Your own (blue) team isn’t read on-device yet — load a saved team or add it below.');
 
     return { player: [], enemy, uncertain, engine: 'local', notes };
   }
