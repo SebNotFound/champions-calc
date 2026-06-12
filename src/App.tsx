@@ -155,11 +155,17 @@ export default function App() {
 
       <header className="app-header">
         <div className="brand">
-          <div className="brand-mark" aria-hidden="true">◓</div>
+          <svg className="brand-logo" viewBox="0 0 52 36" aria-hidden="true">
+            <rect x="2" y="6" width="48" height="24" rx="7" />
+            <line x1="2" y1="18" x2="19" y2="18" />
+            <line x1="33" y1="18" x2="50" y2="18" />
+            <circle cx="26" cy="18" r="7" />
+            <circle className="brand-logo-dot" cx="26" cy="18" r="2.2" />
+          </svg>
           <div className="brand-text">
-            <h1>Champions Calc</h1>
+            <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
             <span className="reg-badge">
-              {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} {CHAMPIONS_FORMAT.gameType}
+              {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} · {CHAMPIONS_FORMAT.gameType}
             </span>
           </div>
         </div>
@@ -169,7 +175,7 @@ export default function App() {
           title="Toggle dark mode"
           aria-label="Toggle dark mode"
         >
-          {theme === 'dark' ? '☀️' : '🌙'}
+          {theme === 'dark' ? '☀' : '☾'}
         </button>
       </header>
 

@@ -5,22 +5,41 @@
 /* ---- Header ---- */
 .app-header {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 9px 14px; background: var(--panel);
+  padding: 11px 16px; position: relative; overflow: hidden;
+  background: linear-gradient(180deg, var(--panel), var(--panel-2));
   border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
 }
-.brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
-.brand-mark {
-  width: 36px; height: 36px; flex-shrink: 0; display: grid; place-items: center;
-  border-radius: 10px; font-size: 20px; color: #fff;
-  background: linear-gradient(135deg, var(--accent), #7aa2ff);
+/* Thin glowing accent edge along the top — the futuristic tell. */
+.app-header::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent) 35%, var(--accent) 65%, transparent);
+  opacity: 0.85;
 }
-.brand-text { display: flex; flex-direction: column; min-width: 0; }
-.brand-text h1 { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
-.reg-badge { font-size: 11px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.brand { display: flex; align-items: center; gap: 13px; min-width: 0; }
+.brand-logo {
+  width: 46px; height: 32px; flex-shrink: 0;
+  fill: none; stroke: var(--accent); stroke-width: 2.4; stroke-linecap: round;
+  filter: drop-shadow(0 0 5px rgba(91, 140, 255, 0.45));
+}
+.brand-logo-dot { fill: var(--accent); stroke: none; }
+.brand-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.wordmark {
+  font-family: 'Orbitron', ui-monospace, 'Segoe UI', sans-serif;
+  font-size: 17px; font-weight: 700; line-height: 1;
+  display: flex; align-items: baseline; gap: 0.45em; white-space: nowrap;
+  letter-spacing: 0.08em;
+}
+.wordmark span { color: var(--accent); font-weight: 900; }
+.reg-badge {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 10px; font-weight: 600; color: var(--text-dim);
+  text-transform: uppercase; letter-spacing: 0.2em;
+}
 .theme-toggle {
-  font-size: 15px; line-height: 1; width: 36px; height: 36px; padding: 0; flex-shrink: 0;
-  border-radius: 10px; display: grid; place-items: center;
+  font-size: 16px; line-height: 1; width: 38px; height: 38px; padding: 0; flex-shrink: 0;
+  border-radius: 9px; display: grid; place-items: center; color: var(--text-dim);
 }
+.theme-toggle:hover { color: var(--accent); border-color: var(--accent); }
 
 /* Dark-mode tweaks for the few hardcoded light backgrounds. */
 [data-theme="dark"] .icon-btn:hover { background: #3a2530; }
