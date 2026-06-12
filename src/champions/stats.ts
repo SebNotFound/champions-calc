@@ -9,25 +9,22 @@
  *     in any one stat, and **1 SP adds exactly +1 to that stat at Lv50**.
  *   • Natures still raise one stat by 10% and lower another by 10%.
  *
- * That "1 SP = +1" rule is the important clue for *where* SP is applied: it
- * has to be added **after** the nature multiplier. If SP were added before
- * the multiplier, a boosting nature would turn 1 SP into +1.1, which breaks
- * the rule. This is also exactly why Champions needs its own stat math rather
- * than reusing classic EV math — in the old games the investment lives
- * *inside* the nature multiplier, so for a natured stat the two systems
- * disagree by a couple of points.
+ * Where SP is applied — before or after the nature multiplier — was VERIFIED
+ * against real in-game team-report screenshots (samples/derived-stats.png):
+ * the game folds SP **inside** the nature multiplier, exactly like classic EV
+ * math. Three independent stat lines prove it:
+ *   - Mamoswine Atk 200 @ 32 SP, Adamant: floor((150+32)·1.1) = 200; the
+ *     "after" ordering would give 197.
+ *   - Volcarona Spe 147 @ 14 SP, Timid: floor((120+14)·1.1) = 147 (after: 146).
+ *   - Floette-Eternal Spe 158 @ 32 SP, Timid: floor((112+32)·1.1) = 158
+ *     (after: 155).
+ * So on a boosted stat 1 SP is effectively +1.1 (and +0.9 on a hindered one),
+ * the marketing "1 SP = +1" wording notwithstanding.
  *
  * Sanity check that the baseline is right: at Lv50 with perfect IVs and 0 SP,
  * HP comes out to (Base + 75); the 32-SP cap pushes it to (Base + 107) —
  * exactly the old "252 EV" maximum. The numbers line up, which is a good sign
  * the model matches the game.
- *
- * Two micro-behaviours aren't officially documented by the publisher:
- *   1. SP applied after vs. before the nature multiplier, and
- *   2. floor vs. round on the nature multiplication.
- * Both are isolated behind the constants below so they can be flipped in one
- * place and re-verified against the live game. The defaults match every
- * mainline title and the "1 SP = +1" wording.
  */
 
 import type { NatureName, StatKey, StatSpread, StatTable } from './types';
@@ -46,11 +43,11 @@ export const MAX_SP_PER_STAT = 32;
 
 /**
  * `true`  → a Stat Point is added *after* the nature multiplier (1 SP = +1).
- * `false` → SP is folded into the value the nature multiplies.
- * Defaults to `true` to honour the in-game "1 SP = +1" rule. Flip this single
- * flag if live testing ever proves the engine does it the other way.
+ * `false` → SP is folded into the value the nature multiplies (classic EV math).
+ * Set from real team-report screenshots (see the module comment): the game
+ * uses the classic ordering, so this stays `false`.
  */
-export const SP_APPLIED_AFTER_NATURE = true;
+export const SP_APPLIED_AFTER_NATURE = false;
 
 /** The six stat keys, in canonical order. */
 export const STAT_KEYS: StatKey[] = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'];

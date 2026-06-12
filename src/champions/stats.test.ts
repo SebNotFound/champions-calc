@@ -36,10 +36,17 @@ describe('Champions stat formula', () => {
     expect(computeStat('atk', 100, 0, 'Modest')).toBe(108);
   });
 
-  // The documented divergence from classic EV math: SP is added AFTER the
-  // nature multiplier, so 32 SP into a boosted stat is NOT the same as 252 EV.
-  it('SP is added after nature (base 100 Adamant +32 SP = 164, not 167)', () => {
-    expect(computeStat('atk', 100, 32, 'Adamant')).toBe(164);
+  // Verified against in-game team-report screenshots: SP sits INSIDE the
+  // nature multiplier, exactly like classic EV math (see stats.ts header).
+  it('SP is folded into the nature multiplier (base 100 Adamant +32 SP = 167)', () => {
+    expect(computeStat('atk', 100, 32, 'Adamant')).toBe(167); // floor((120+32)·1.1)
+  });
+
+  // The real-screenshot regression cases that pinned the ordering down.
+  it('matches the in-game report numbers (Mamoswine / Volcarona / Floette-Eternal)', () => {
+    expect(computeStat('atk', 130, 32, 'Adamant')).toBe(200); // Mamoswine Atk
+    expect(computeStat('spe', 100, 14, 'Timid')).toBe(147);   // Volcarona Spe
+    expect(computeStat('spe', 92, 32, 'Timid')).toBe(158);    // Floette-Eternal Spe
   });
 
   it('natureMultiplier never affects HP', () => {
@@ -58,8 +65,8 @@ describe('Champions stat formula', () => {
     );
     // HP: floor((216+31)/2)+60 = 123+60 = 183, +4 SP = 187
     expect(stats.hp).toBe(187);
-    // Atk: floor((floor((260+31)/2)+5)*1.1)+32 = floor((145+5)*1.1)+32 = 165+32 = 197
-    expect(stats.atk).toBe(197);
+    // Atk: floor((floor((260+31)/2)+5+32)*1.1) = floor(182*1.1) = 200
+    expect(stats.atk).toBe(200);
     // SpA hindered by Adamant: floor((floor((160+31)/2)+5)*0.9) = floor((95+5)*0.9) = 90
     expect(stats.spa).toBe(90);
     // Spe neutral: floor((204+31)/2)+5 = 117+5 = 122, +30 SP = 152
