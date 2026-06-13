@@ -1,13 +1,18 @@
 /**
  * Team-report import (your own team) from the in-game team view.
  *
- * Drop the two tabs — "Stats" and "Moves & More" — and Claude reads both and
- * merges them into full sets (species, nature, item, ability, moves, Stat
- * Points). One screenshot works too; two gives the complete set. Claude-only,
- * since it's detailed text OCR.
+ * Drop the two tabs — "Stats" and "Moves & More" — and the chosen engine reads
+ * both into full sets (species, nature, item, ability, moves, Stat Points).
+ *
+ *  - "Free (on-device)": tesseract.js OCR + fuzzy-matching to the Pokémon's
+ *    legal vocabulary + stat-math spread solving. No key, no cost; reads the
+ *    odd busy item imperfectly (fix it in the review).
+ *  - "Precise (Claude)": Claude vision; needs an API key and a cent or two.
+ *
+ * One screenshot works; two gives the complete set.
  */
 import { useRef, useState } from 'react';
-import { recognizeTeamReport } from '../recognition';
+import { recognizeTeamReport, recognizeTeamReportLocal } from '../recognition';
 import { spriteUrl } from '../champions';
 import type { ChampionsSet, StatTable } from '../champions';
 
@@ -18,12 +23,15 @@ interface Props {
 }
 
 interface Pick { blob: Blob; url: string; }
+type Mode = 'free' | 'claude';
 
 export function TeamReportDialog({ open, onClose, onImport }: Props) {
+  const [mode, setMode] = useState<Mode>('free');
   const [stats, setStats] = useState<Pick | null>(null);
   const [moves, setMoves] = useState<Pick | null>(null);
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('champions-calc/anthropicKey') ?? '');
   const [busy, setBusy] = useState(false);
+  const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ChampionsSet[] | null>(null);
 
@@ -37,16 +45,26 @@ export function TeamReportDialog({ open, onClose, onImport }: Props) {
   };
 
   const read = async () => {
-    const images = [stats?.blob, moves?.blob].filter(Boolean) as Blob[];
-    if (!images.length) { setError('Add at least one screenshot.'); return; }
+    if (!stats && !moves) { setError('Add at least one screenshot.'); return; }
     setBusy(true);
     setError(null);
+    setProgress(null);
     try {
-      setResult(await recognizeTeamReport(images, apiKey));
+      if (mode === 'free') {
+        const sets = await recognizeTeamReportLocal(
+          { stats: stats?.blob, moves: moves?.blob },
+          (done, total) => setProgress(`Reading… ${Math.round((done / total) * 100)}%`),
+        );
+        setResult(sets);
+      } else {
+        const images = [stats?.blob, moves?.blob].filter(Boolean) as Blob[];
+        setResult(await recognizeTeamReport(images, apiKey));
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setBusy(false);
+      setProgress(null);
     }
   };
 
@@ -76,10 +94,15 @@ export function TeamReportDialog({ open, onClose, onImport }: Props) {
                 </div>
               ))}
             </div>
+            <p className="detect-note">Double-check anything that looks off — busy item icons can trip the free reader.</p>
             <button className="link-btn" onClick={() => setResult(null)}>Use different screenshots</button>
           </div>
         ) : (
           <>
+            <div className="report-mode">
+              <button className={mode === 'free' ? 'active' : ''} onClick={() => setMode('free')}>Free · on-device</button>
+              <button className={mode === 'claude' ? 'active' : ''} onClick={() => setMode('claude')}>Precise · Claude</button>
+            </div>
             <p className="modal-hint">
               Open your team’s view in-game, then screenshot the <strong>Stats</strong> tab and the
               <strong> Moves &amp; More</strong> tab. Drop both here (one works too).
@@ -88,14 +111,20 @@ export function TeamReportDialog({ open, onClose, onImport }: Props) {
               <ReportZone label="Stats tab" pick={stats} onPick={choose(setStats)} />
               <ReportZone label="Moves &amp; More tab" pick={moves} onPick={choose(setMoves)} />
             </div>
-            <input
-              className="api-key"
-              type="password"
-              placeholder="Anthropic API key (kept in your browser)"
-              value={apiKey}
-              onChange={(e) => { setApiKey(e.target.value); localStorage.setItem('champions-calc/anthropicKey', e.target.value); }}
-            />
-            <p className="modal-hint">Uses Claude vision — costs a cent or two per read.</p>
+            {mode === 'claude' ? (
+              <>
+                <input
+                  className="api-key"
+                  type="password"
+                  placeholder="Anthropic API key (kept in your browser)"
+                  value={apiKey}
+                  onChange={(e) => { setApiKey(e.target.value); localStorage.setItem('champions-calc/anthropicKey', e.target.value); }}
+                />
+                <p className="modal-hint">Uses Claude vision — costs a cent or two per read.</p>
+              </>
+            ) : (
+              <p className="modal-hint">Reads entirely in your browser — no key, no cost. First run downloads a ~3&nbsp;MB OCR model (then cached).</p>
+            )}
           </>
         )}
 
@@ -111,7 +140,7 @@ export function TeamReportDialog({ open, onClose, onImport }: Props) {
             <>
               <button onClick={onClose}>Cancel</button>
               <button className="primary" onClick={read} disabled={busy || (!stats && !moves)}>
-                {busy ? 'Reading…' : 'Read team'}
+                {busy ? (progress ?? 'Reading…') : 'Read team'}
               </button>
             </>
           )}

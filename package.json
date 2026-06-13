@@ -17,7 +17,8 @@
     "@pkmn/img": "^0.3.4",
     "@smogon/calc": "^0.11.0",
     "react": "^19.2.6",
-    "react-dom": "^19.2.6"
+    "react-dom": "^19.2.6",
+    "tesseract.js": "^7.0.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -31,6 +32,7 @@
     "globals": "^17.6.0",
     "jpeg-js": "^0.4.4",
     "pngjs": "^7.0.0",
+    "tsx": "^4.22.4",
     "typescript": "~6.0.2",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.12",
