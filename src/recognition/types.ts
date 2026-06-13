@@ -35,6 +35,14 @@ export interface RecognitionResult {
   notes?: string[];
 }
 
+/** A rectangle in source-image pixels (used for the manual enemy-panel crop). */
+export interface CropRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
 /** A pluggable recognizer. Both the local and Claude engines implement this. */
 export interface TeamPreviewRecognizer {
   readonly id: 'local' | 'claude';

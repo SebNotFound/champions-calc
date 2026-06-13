@@ -1,4 +1,4 @@
-import type { DetectedPokemon, RecognitionResult, TeamPreviewRecognizer } from './types';
+import type { DetectedPokemon, RecognitionResult, TeamPreviewRecognizer, CropRect } from './types';
 import { resolveSpeciesName } from '../champions/engine';
 import type { Side } from '../champions';
 import { spriteThumbnail, colorThumbnail, normalizeThumb, similarity, decodeThumb } from '../champions/phash';
@@ -130,6 +130,50 @@ function bestMatch(rgba: Uint8ClampedArray, w: number, h: number): { species: st
   return { species: bestSpecies, sim: bestSim };
 }
 
+/**
+ * Match one enemy column [x0, x1] split into the given slot rows — shared by the
+ * automatic path and the manual-crop path. Each slot is cropped to the sprite
+ * (the left {@link SPRITE_WIDTH_FRACTION} of the panel), stripped of the red
+ * panel, reduced to its largest blob (dropping the gender/item icons), then
+ * matched. Confident hits go to `enemy`; shaky ones to `uncertain`.
+ */
+function matchEnemyColumn(img: Img, x0: number, x1: number, slots: Array<[number, number]>) {
+  const spriteW = Math.round((x1 - x0) * SPRITE_WIDTH_FRACTION);
+  const enemy: DetectedPokemon[] = [];
+  const uncertain: DetectedPokemon[] = [];
+  if (spriteW < 8) return { enemy, uncertain };
+  for (const [y0, y1] of slots) {
+    const ch = y1 - y0;
+    if (ch < 8 || y0 < 0 || y1 > img.height) continue;
+    const rgba = keepLargestComponent(
+      removeEnemyBackground(cropRGBA(img, x0, y0, spriteW, ch), spriteW, ch),
+      spriteW, ch,
+    );
+    const { species, sim } = bestMatch(rgba, spriteW, ch);
+    const mon: DetectedPokemon = {
+      side: 'enemy',
+      species: resolveSpeciesName(species),
+      confidence: sim,
+      box: { x: x0, y: y0, w: spriteW, h: ch },
+    };
+    if (sim >= MATCH_THRESHOLD) enemy.push(mon);
+    else if (sim >= MENTION_THRESHOLD) uncertain.push(mon); // shaky — offer, don't fill
+  }
+  return { enemy, uncertain };
+}
+
+/**
+ * If nothing cleared the confidence bar, steer the user to a surer path — even
+ * when there are weak guesses, since on a hard screenshot (low-res, or panels
+ * lost in battle effects) those guesses are unreliable.
+ */
+function lowConfidenceNotes(enemy: DetectedPokemon[], uncertain: DetectedPokemon[]): string[] {
+  if (enemy.length) return [];
+  return [uncertain.length
+    ? 'Couldn’t confidently read the enemy team — the guesses below are low-confidence. Crop the six panels yourself, pick/add them manually, or try “More precise” (Claude).'
+    : 'Couldn’t match any enemy Pokémon — crop the six panels yourself, add them below, or try “More precise” (Claude).'];
+}
+
 export class LocalRecognizer implements TeamPreviewRecognizer {
   readonly id = 'local' as const;
   readonly label = 'On-device (free)';
@@ -147,43 +191,75 @@ export class LocalRecognizer implements TeamPreviewRecognizer {
     if (x1 - x0 < 20) {
       return {
         player: [], enemy: [], engine: 'local',
-        notes: ['Couldn’t find the red enemy panels — is this a Team Preview screenshot? Add them below, or try “More precise”.'],
+        notes: ['Couldn’t find the red enemy panels — crop them yourself below, or try “More precise”.'],
       };
     }
 
     const slots = detectSlots(img, x0, x1, isPanelRed);
-    const spriteW = Math.round((x1 - x0) * SPRITE_WIDTH_FRACTION);
-    const enemy: DetectedPokemon[] = [];
-    const uncertain: DetectedPokemon[] = [];
+    const { enemy, uncertain } = matchEnemyColumn(img, x0, x1, slots);
+    return { player: [], enemy, uncertain, engine: 'local', notes: lowConfidenceNotes(enemy, uncertain) };
+  }
 
-    for (const [y0, y1] of slots) {
-      const ch = y1 - y0;
-      if (ch < 8 || y0 < 0 || y1 > img.height) continue;
-      const rgba = keepLargestComponent(
-        removeEnemyBackground(cropRGBA(img, x0, y0, spriteW, ch), spriteW, ch),
-        spriteW, ch,
-      );
-      const { species, sim } = bestMatch(rgba, spriteW, ch);
-      const mon: DetectedPokemon = {
-        side: 'enemy',
-        species: resolveSpeciesName(species),
-        confidence: sim,
-        box: { x: x0, y: y0, w: spriteW, h: ch },
-      };
-      if (sim >= MATCH_THRESHOLD) enemy.push(mon);
-      else if (sim >= MENTION_THRESHOLD) uncertain.push(mon); // shaky — offer, don't fill
+  /**
+   * Auto-detect the enemy column's bounding box (in source-image pixels) so the
+   * manual crop can be pre-filled with a sensible guess. Null if no red column.
+   */
+  async detectEnemyBox(image: Blob): Promise<CropRect | null> {
+    const img = await decodeToImg(image);
+    const [x0, x1] = detectColumn(img, isPanelRed, 'right');
+    if (x1 - x0 < 20) return null;
+    const slots = detectSlots(img, x0, x1, isPanelRed)
+      .filter(([y0, y1]) => y1 - y0 >= 8 && y0 >= 0 && y1 <= img.height);
+    if (!slots.length) return null;
+    return { x: x0, y: slots[0][0], w: x1 - x0, h: slots[slots.length - 1][1] - slots[0][0] };
+  }
+
+  /**
+   * Read the enemy team from a user-drawn crop of the six panels. The crop IS
+   * the column and is split into six equal rows — no fragile locate/row step —
+   * so it works when auto-detect can't find the panels (off-centre shots, a
+   * trainer-name banner, odd layouts). It can't recover sprites that are
+   * themselves covered by battle effects; those stay low-confidence.
+   */
+  async recognizeCrop(image: Blob, rect: CropRect): Promise<RecognitionResult> {
+    const img = await decodeToImg(image);
+    const x0 = Math.max(0, Math.round(rect.x));
+    const x1 = Math.min(img.width, Math.round(rect.x + rect.w));
+    const top = Math.max(0, Math.round(rect.y));
+    const bottom = Math.min(img.height, Math.round(rect.y + rect.h));
+    if (x1 - x0 < 16 || bottom - top < 24) {
+      return { player: [], enemy: [], engine: 'local', notes: ['That crop is too small — draw a box around the six enemy panels.'] };
     }
 
-    // If nothing cleared the confidence bar, say so and steer to a surer path —
-    // even when there are weak guesses, since on a hard screenshot (low-res, or
-    // panels lost in battle effects) those guesses are unreliable.
-    const notes: string[] = [];
-    if (!enemy.length) {
-      notes.push(uncertain.length
-        ? 'Couldn’t confidently read the enemy team on-device — the guesses below are low-confidence. Try “More precise” (Claude), or pick/add them manually.'
-        : 'Couldn’t match any enemy Pokémon on-device — add them below, or try “More precise”.');
+    // Work inside the crop only — the user has already excluded the header and
+    // everything off to the side, so the brittle locate-on-the-whole-screen step
+    // is gone.
+    const sub: Img = {
+      data: cropRGBA(img, x0, top, x1 - x0, bottom - top),
+      width: x1 - x0,
+      height: bottom - top,
+    };
+
+    // Re-detect within the crop so a sloppy box still works: detectColumn trims
+    // any margin the user left on the sides, and detectSlots nails the panel
+    // pitch. Only if that doesn't yield a clean six-panel split (e.g. effects
+    // bleed across the panels) do we fall back to six equal rows over the crop.
+    let cx0 = 0, cx1 = sub.width;
+    let slots: Array<[number, number]>;
+    const [dx0, dx1] = detectColumn(sub, isPanelRed, 'right');
+    const detected = dx1 - dx0 >= sub.width * 0.3
+      ? detectSlots(sub, dx0, dx1, isPanelRed).filter(([a, b]) => b - a >= 8 && a >= 0 && b <= sub.height)
+      : [];
+    if (detected.length === 6) {
+      cx0 = dx0; cx1 = dx1; slots = detected;
+    } else {
+      slots = Array.from({ length: 6 }, (_, i): [number, number] => [
+        Math.round((i * sub.height) / 6),
+        Math.round(((i + 1) * sub.height) / 6),
+      ]);
     }
 
-    return { player: [], enemy, uncertain, engine: 'local', notes };
+    const { enemy, uncertain } = matchEnemyColumn(sub, cx0, cx1, slots);
+    return { player: [], enemy, uncertain, engine: 'local', notes: lowConfidenceNotes(enemy, uncertain) };
   }
 }
