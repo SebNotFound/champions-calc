@@ -12,11 +12,15 @@ import { Dex } from '@pkmn/dex';
 import { Generations } from '@pkmn/data';
 import { Sprites } from '@pkmn/img';
 
-const metaGen = new Generations(Dex).get(9);
+// National-dex filter: Champions' roster spans past gens, so species/formes
+// that never made it into Scarlet/Violet (Floette-Eternal, …) must still
+// resolve here. The default gen-9 filter would return nothing for them.
+const metaGen = new Generations(Dex, () => true).get(9);
 
 /** Every ability a species can legally have (primary, secondary, hidden). */
 export function speciesAbilities(species: string): string[] {
-  const specie = metaGen.species.get(species);
+  let specie = metaGen.species.get(species);
+  if (specie && !specie.abilities[0] && specie.baseSpecies) specie = metaGen.species.get(specie.baseSpecies);
   if (!specie) return [];
   const a = specie.abilities as { 0?: string; 1?: string; H?: string; S?: string };
   return Array.from(new Set([a[0], a[1], a.H, a.S].filter((x): x is string => !!x)));
