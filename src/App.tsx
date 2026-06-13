@@ -157,26 +157,27 @@ export default function App() {
       <SharedDatalists />
 
       <header className="app-header">
-        <div className="brand">
-          <BrandLogo />
-          <div className="brand-text">
-            <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
-            <span className="reg-badge">
-              {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} · {CHAMPIONS_FORMAT.gameType}
-            </span>
+        <div className="header-top">
+          <div className="brand">
+            <BrandLogo />
+            <div className="brand-text">
+              <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
+              <span className="reg-badge">
+                {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} · {CHAMPIONS_FORMAT.gameType}
+              </span>
+            </div>
           </div>
+          <button
+            className="theme-toggle"
+            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            title="Toggle dark mode"
+            aria-label="Toggle dark mode"
+          >
+            {theme === 'dark' ? '☀' : '☾'}
+          </button>
         </div>
-        <button
-          className="theme-toggle"
-          onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-          title="Toggle dark mode"
-          aria-label="Toggle dark mode"
-        >
-          {theme === 'dark' ? '☀' : '☾'}
-        </button>
+        <FieldControls value={fieldState} onChange={setFieldState} onReset={handleResetConditions} />
       </header>
-
-      <FieldControls value={fieldState} onChange={setFieldState} onReset={handleResetConditions} />
 
       <main className="calc-layout">
         <TeamColumn
