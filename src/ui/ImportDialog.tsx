@@ -14,9 +14,10 @@
  */
 import { useRef, useState } from 'react';
 import { LocalRecognizer, ClaudeRecognizer } from '../recognition';
-import type { RecognitionResult } from '../recognition';
+import type { RecognitionResult, CropRect } from '../recognition';
 import { spriteUrl, resolveSpeciesName, getSpeciesBaseStats } from '../champions';
 import { Combobox, DATALIST } from './widgets';
+import { CropBox } from './CropBox';
 
 type Side = 'player' | 'enemy';
 
@@ -39,14 +40,18 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
   const [result, setResult] = useState<RecognitionResult | null>(null);
   const [draft, setDraft] = useState<string[]>([]);
   const [manual, setManual] = useState('');
+  const [cropping, setCropping] = useState(false);
+  const [cropBox, setCropBox] = useState<CropRect | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!side) return null;
 
   const isPlayer = side === 'player';
   const sideLabel = isPlayer ? 'your team' : 'the enemy team';
+  // Manual crop is an on-device, enemy-only helper (Claude doesn't need it).
+  const canCrop = !isPlayer && !precise;
 
-  const reset = () => { setResult(null); setDraft([]); setManual(''); };
+  const reset = () => { setResult(null); setDraft([]); setManual(''); setCropping(false); setCropBox(null); };
 
   const acceptImage = (file: File | null | undefined) => {
     if (!file) return;
@@ -54,6 +59,32 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
     reset();
     setImage(file);
     setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  // Open the manual cropper, pre-filled with the auto-detected column if we can
+  // find one (otherwise CropBox falls back to a sensible default box).
+  const openCrop = async () => {
+    if (!image) return;
+    setError(null);
+    try { setCropBox(await new LocalRecognizer().detectEnemyBox(image)); }
+    catch { setCropBox(null); }
+    setCropping(true);
+  };
+
+  const confirmCrop = async (rect: CropRect) => {
+    if (!image) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await new LocalRecognizer().recognizeCrop(image, rect);
+      setResult(res);
+      setDraft(res.enemy.map((d) => d.species));
+      setCropping(false);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   const detect = async () => {
@@ -65,6 +96,9 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
       const res = await recognizer.recognize(image, side);
       setResult(res);
       setDraft((isPlayer ? res.player : res.enemy).map((d) => d.species));
+      // If on-device couldn't confidently place anything, jump straight to the
+      // manual cropper (pre-filled) so the user can fix the locate themselves.
+      if (canCrop && res.enemy.length === 0) await openCrop();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -92,7 +126,9 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
           <button className="icon-btn" onClick={onClose} aria-label="Close">×</button>
         </div>
 
-        {result ? (
+        {cropping && previewUrl ? (
+          <CropBox src={previewUrl} initialRect={cropBox} onConfirm={confirmCrop} onCancel={() => setCropping(false)} busy={busy} />
+        ) : result ? (
           <div className="detect-review">
             <p className="detect-engine">
               Detected with the {result.engine === 'claude' ? 'Claude' : 'on-device'} engine — review, then apply.
@@ -152,7 +188,10 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
             </div>
 
             {result.notes?.map((n, i) => <p key={i} className="detect-note">{n}</p>)}
-            <button className="link-btn" onClick={reset}>Use a different image</button>
+            <div className="detect-links">
+              {canCrop && <button className="link-btn" onClick={openCrop}>Crop the panels myself</button>}
+              <button className="link-btn" onClick={reset}>Use a different image</button>
+            </div>
           </div>
         ) : (
           <>
@@ -197,21 +236,24 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
 
         {error && <p className="modal-error">{error}</p>}
 
-        <div className="modal-actions">
-          {result ? (
-            <>
-              <button onClick={reset}>Back</button>
-              <button className="primary" onClick={apply} disabled={draft.length === 0}>Apply to calculator</button>
-            </>
-          ) : (
-            <>
-              <button onClick={onClose}>Cancel</button>
-              <button className="primary" onClick={detect} disabled={!image || busy}>
-                {busy ? 'Detecting…' : 'Detect'}
-              </button>
-            </>
-          )}
-        </div>
+        {!cropping && (
+          <div className="modal-actions">
+            {result ? (
+              <>
+                <button onClick={reset}>Back</button>
+                <button className="primary" onClick={apply} disabled={draft.length === 0}>Apply to calculator</button>
+              </>
+            ) : (
+              <>
+                <button onClick={onClose}>Cancel</button>
+                {canCrop && image && <button onClick={openCrop} disabled={busy}>Crop manually</button>}
+                <button className="primary" onClick={detect} disabled={!image || busy}>
+                  {busy ? 'Detecting…' : 'Detect'}
+                </button>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

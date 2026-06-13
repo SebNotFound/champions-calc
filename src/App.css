@@ -270,6 +270,29 @@
 .detect-add input { flex: 1; }
 .detect-note { font-size: 12px; color: var(--text-dim); background: var(--panel-2); padding: 8px 10px; border-radius: 8px; }
 .link-btn { background: none; border: none; color: var(--accent); text-decoration: underline; cursor: pointer; font-size: 13px; padding: 0; align-self: flex-start; }
+.detect-links { display: flex; gap: 16px; flex-wrap: wrap; }
+
+/* ---- Manual crop (enemy panels) ---- */
+.cropper { display: flex; flex-direction: column; gap: 12px; }
+.crop-help { font-size: 13px; color: var(--text-dim); }
+.crop-stage { position: relative; line-height: 0; max-height: 60vh; overflow: auto; border-radius: 8px; background: var(--panel-2); }
+.crop-img { width: 100%; display: block; user-select: none; -webkit-user-drag: none; }
+.crop-box {
+  position: absolute; box-sizing: border-box;
+  border: 2px solid var(--accent); background: rgba(99, 102, 241, 0.12);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.45); /* dim everything outside the box */
+  cursor: move; touch-action: none;
+}
+.crop-guide { position: absolute; left: 0; right: 0; height: 0; border-top: 1px dashed rgba(255, 255, 255, 0.65); pointer-events: none; }
+.crop-handle {
+  position: absolute; width: 14px; height: 14px; background: var(--accent);
+  border: 2px solid #fff; border-radius: 3px; touch-action: none;
+}
+.crop-handle.nw { left: -8px; top: -8px; cursor: nwse-resize; }
+.crop-handle.ne { right: -8px; top: -8px; cursor: nesw-resize; }
+.crop-handle.sw { left: -8px; bottom: -8px; cursor: nesw-resize; }
+.crop-handle.se { right: -8px; bottom: -8px; cursor: nwse-resize; }
+.crop-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 /* ---- Team-report (2-screenshot) import ---- */
 .report-mode { display: flex; gap: 6px; padding: 3px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 10px; }
