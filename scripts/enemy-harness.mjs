@@ -10,7 +10,7 @@
 import jpeg from 'jpeg-js';
 import { PNG } from 'pngjs';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { detectColumn, detectSlots, cropRGBA, removeEnemyBackground, keepLargestComponent, flipH, isPanelRed } from '../src/recognition/segment.ts';
+import { detectColumn, detectEnemyColumn, detectSlots, cropRGBA, removeEnemyBackground, keepLargestComponent, flipH, isPanelRed } from '../src/recognition/segment.ts';
 import { spriteThumbnail, colorThumbnail, normalizeThumb, similarity, decodeThumb } from '../src/champions/phash.ts';
 
 /** Known enemy team in samples/team-preview-1.png, top to bottom. */
@@ -29,7 +29,7 @@ const decode = (b) => (b[0] === 0xff && b[1] === 0xd8 ? jpeg.decode(b, { useTArr
 
 const { width, height, data } = decode(readFileSync('samples/team-preview-1.png'));
 const img = { data, width, height };
-const [x0, x1] = detectColumn(img, isPanelRed, 'right');
+const [x0, x1] = detectEnemyColumn(img);
 const slots = detectSlots(img, x0, x1, isPanelRed);
 const spriteW = Math.round((x1 - x0) * FRAC);
 console.log(`${width}x${height}  red col ${x0}..${x1}  ${slots.length} slots  spriteW ${spriteW}  frac=${FRAC} tol=${BG_TOL}  colour=${hasColor ? COLOR_WEIGHT : 'n/a'}`);

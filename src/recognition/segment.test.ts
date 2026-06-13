@@ -1,9 +1,12 @@
 import { describe, it, expect } from 'vitest';
 import { detectEnemyColumn, detectSlots, cropRGBA, flipH, removeBackground, isPanelRed, type Img } from './segment';
 
+/** A real Champions enemy-panel crimson (red dominant, green minimal, blue > green). */
+const CRIMSON: [number, number, number] = [130, 20, 55];
+
 /**
- * A synthetic Team Preview: a neutral-grey image with a red panel column on the
- * right made of six evenly-spaced red bands (the slots), separated by gaps.
+ * A synthetic Team Preview: a neutral-grey image with a crimson panel column on
+ * the right made of six evenly-spaced bands (the slots), separated by gaps.
  * Lets us test the geometry without binary fixtures or decoder differences.
  */
 function syntheticPreview(): Img {
@@ -18,7 +21,7 @@ function syntheticPreview(): Img {
     for (let y = top; y < top + panelH; y++) {
       for (let x = x0; x <= x1; x++) {
         const i = (y * width + x) * 4;
-        data[i] = 180; data[i + 1] = 40; data[i + 2] = 40; data[i + 3] = 255;
+        data[i] = CRIMSON[0]; data[i + 1] = CRIMSON[1]; data[i + 2] = CRIMSON[2]; data[i + 3] = 255;
       }
     }
   }
@@ -26,10 +29,11 @@ function syntheticPreview(): Img {
 }
 
 describe('isPanelRed', () => {
-  it('accepts dark panel red, rejects grey and blue', () => {
-    expect(isPanelRed(180, 40, 40)).toBe(true);
-    expect(isPanelRed(40, 40, 40)).toBe(false);
-    expect(isPanelRed(40, 40, 180)).toBe(false);
+  it('accepts panel crimson, rejects grey, blue, and orange fire', () => {
+    expect(isPanelRed(...CRIMSON)).toBe(true);
+    expect(isPanelRed(40, 40, 40)).toBe(false);  // grey
+    expect(isPanelRed(40, 40, 180)).toBe(false); // blue
+    expect(isPanelRed(220, 120, 40)).toBe(false); // orange fire: green over blue
   });
 });
 

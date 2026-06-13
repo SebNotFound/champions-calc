@@ -17,9 +17,16 @@ export interface Img {
 /** A pixel colour test (panel background detector). */
 export type ColorTest = (r: number, g: number, b: number) => boolean;
 
-/** The dark-red Champions enemy panel colour (R clearly dominant). */
+/**
+ * The dark-crimson Champions enemy panel colour. Red dominates, green is nearly
+ * absent, and crucially BLUE sits above green (a magenta tilt: samples read like
+ * 94/16/51, 110/8/45). That blue>green test is what separates the panel from the
+ * orange/yellow battle fire and red embers, which are also red-ish but lean green
+ * over blue (e.g. 200/60/40) — so the fire no longer reads as panel and can't
+ * drag the panel-column detection out into the centre of the screen.
+ */
 export function isPanelRed(r: number, g: number, b: number): boolean {
-  return r > 60 && r > g * 1.5 && r > b * 1.35;
+  return r > 55 && r > g * 1.8 && b > g && r > b * 1.1;
 }
 
 /** The blue/indigo Champions player panel colour (B clearly dominant). */
@@ -58,6 +65,7 @@ export function detectColumn(img: Img, test: ColorTest, side: 'left' | 'right'):
 export function detectEnemyColumn(img: Img): [number, number] {
   return detectColumn(img, isPanelRed, 'right');
 }
+
 
 /**
  * Split the red column into six evenly-spaced slot y-ranges.

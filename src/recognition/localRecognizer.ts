@@ -56,17 +56,20 @@ function references(): RefVec[] {
 const COLOR_WEIGHT = 0.45;
 
 /**
- * Accept a match only above this combined similarity; below it the slot is left
- * blank. With colour blended in, every correct sprite on the validation
- * screenshot scored 0.80–0.96, so this cleanly keeps the hits.
+ * Auto-fill a slot only above this combined similarity. With colour blended in,
+ * correctly-matched sprites on a clean Team Preview score 0.80–0.96, while a
+ * mis-segmented screenshot (e.g. a low-res shot where the panels can't be cleanly
+ * separated from battle effects) tops out around 0.5–0.65 — so the bar sits high
+ * enough that a shaky read is shown as a best guess instead of confidently
+ * filling the wrong Pokémon. Better to ask than to be wrong.
  */
-const MATCH_THRESHOLD = 0.55;
+const MATCH_THRESHOLD = 0.7;
 
 /**
  * Below {@link MATCH_THRESHOLD} but still worth showing as a "best guess" hint
  * (rather than auto-filling). Below this we treat the slot as unrecognised.
  */
-const MENTION_THRESHOLD = 0.4;
+const MENTION_THRESHOLD = 0.45;
 
 /**
  * Fraction of each panel's width taken as the sprite window. Wide enough to fit
@@ -171,9 +174,14 @@ export class LocalRecognizer implements TeamPreviewRecognizer {
       else if (sim >= MENTION_THRESHOLD) uncertain.push(mon); // shaky — offer, don't fill
     }
 
+    // If nothing cleared the confidence bar, say so and steer to a surer path —
+    // even when there are weak guesses, since on a hard screenshot (low-res, or
+    // panels lost in battle effects) those guesses are unreliable.
     const notes: string[] = [];
-    if (!enemy.length && !uncertain.length) {
-      notes.push('Couldn’t match any enemy Pokémon on-device — add them below, or try “More precise”.');
+    if (!enemy.length) {
+      notes.push(uncertain.length
+        ? 'Couldn’t confidently read the enemy team on-device — the guesses below are low-confidence. Try “More precise” (Claude), or pick/add them manually.'
+        : 'Couldn’t match any enemy Pokémon on-device — add them below, or try “More precise”.');
     }
 
     return { player: [], enemy, uncertain, engine: 'local', notes };
