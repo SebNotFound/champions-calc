@@ -1,8 +1,8 @@
 import type { DetectedPokemon, RecognitionResult, TeamPreviewRecognizer } from './types';
 import { resolveSpeciesName } from '../champions/engine';
 import type { Side } from '../champions';
-import { spriteThumbnail, normalizeThumb, similarity, decodeThumb } from '../champions/phash';
-import { detectColumn, detectSlots, cropRGBA, removeBackground, flipH, isPanelRed, type Img } from './segment';
+import { spriteThumbnail, colorThumbnail, normalizeThumb, similarity, decodeThumb } from '../champions/phash';
+import { detectColumn, detectSlots, cropRGBA, removeEnemyBackground, keepLargestComponent, flipH, isPanelRed, type Img } from './segment';
 import rawHashes from '../champions/data/sprite-hashes.json';
 
 /**
@@ -14,11 +14,13 @@ import rawHashes from '../champions/data/sprite-hashes.json';
  * Claude (which reads blue via vision), text import, or manual entry. The enemy
  * pipeline:
  *
- *   1. Decode the image to RGBA on a canvas.
+ *   1. Decode the image to RGBA (jpeg-js for JPEGs, canvas otherwise).
  *   2. Find the red column and split it into six slots (segment.ts).
- *   3. Crop each sprite, flood-fill away the panel background.
- *   4. Reduce to a normalized grayscale thumbnail and match it (and its mirror)
- *      against the reference set by cosine similarity (phash.ts).
+ *   3. Crop each sprite, strip the red panel (removeEnemyBackground), and keep
+ *      only the largest blob so the gender/item icons drop out.
+ *   4. Match each sprite (and its mirror) against the reference set by cosine
+ *      similarity, blending a grayscale "shape" score with a coarse colour score
+ *      so similarly-shaped mons of different colours don't get confused (phash.ts).
  *   5. Keep matches above a confidence threshold; weaker ones become "best
  *      guesses" so a shaky guess never silently fills the wrong Pokémon.
  *
@@ -28,26 +30,35 @@ import rawHashes from '../champions/data/sprite-hashes.json';
 
 interface RefVec {
   species: string;
-  v: Float32Array;
+  v: Float32Array;  // grayscale shape fingerprint
+  cv: Float32Array; // coarse colour fingerprint
 }
 
 /** Reference thumbnails, decoded + normalized once on first use. */
 let refVecs: RefVec[] | null = null;
 function references(): RefVec[] {
   if (!refVecs) {
-    refVecs = (rawHashes as Array<{ species: string; t: string }>).map((r) => ({
+    refVecs = (rawHashes as Array<{ species: string; t: string; c: string }>).map((r) => ({
       species: r.species,
       v: normalizeThumb(decodeThumb(r.t)),
+      cv: normalizeThumb(decodeThumb(r.c)),
     }));
   }
   return refVecs;
 }
 
 /**
- * Accept a match only above this cosine similarity; below it the slot is left
- * blank. On the validation screenshot the correct sprites scored 0.66–0.89 and
- * the one genuine miss scored 0.41, so this cleanly keeps the hits and drops
- * the guess.
+ * How much the colour signature counts vs the grayscale shape when scoring a
+ * match (0 = shape only, 1 = colour only). Colour is the tiebreaker that tells
+ * same-shaped mons apart (a tan Hippowdon from a pink Slowbro); shape still
+ * leads. Validated on the sample team where every correct sprite ranked #1.
+ */
+const COLOR_WEIGHT = 0.45;
+
+/**
+ * Accept a match only above this combined similarity; below it the slot is left
+ * blank. With colour blended in, every correct sprite on the validation
+ * screenshot scored 0.80–0.96, so this cleanly keeps the hits.
  */
 const MATCH_THRESHOLD = 0.55;
 
@@ -57,13 +68,30 @@ const MATCH_THRESHOLD = 0.55;
  */
 const MENTION_THRESHOLD = 0.4;
 
-/** Fraction of each panel's width that contains the sprite (the rest is text/icons). */
-const SPRITE_WIDTH_FRACTION = 0.6;
+/**
+ * Fraction of each panel's width taken as the sprite window. Wide enough to fit
+ * big mons (Hippowdon) without clipping; the gender/item icons that fall inside
+ * it are removed by {@link keepLargestComponent}, not by cropping them out.
+ */
+const SPRITE_WIDTH_FRACTION = 0.7;
 
-/** Decode a user-selected image Blob to raw RGBA via a canvas. Colour management
- *  is disabled so the decoded pixels match the reference fingerprints (which
- *  were generated without an ICC transform), keeping similarity scores stable. */
+/**
+ * Decode a user-selected image Blob to raw RGBA.
+ *
+ * JPEGs are decoded with jpeg-js rather than the canvas: the browser's native
+ * JPEG decoder upsamples chroma a little differently, which shifted similarity
+ * scores enough to drop borderline matches (Rotom 0.82 → 0.46) versus the
+ * reference pipeline this matcher was tuned against. PNG/webp (lossless or
+ * canvas-only) go through the canvas, where they already match. Colour
+ * management is disabled so pixels line up with the ICC-free reference sprites.
+ */
 async function decodeToImg(image: Blob): Promise<Img> {
+  const buf = new Uint8Array(await image.arrayBuffer());
+  if (buf[0] === 0xff && buf[1] === 0xd8) {
+    const { default: jpeg } = await import('jpeg-js');
+    const { data, width, height } = jpeg.decode(buf, { useTArray: true, maxMemoryUsageInMB: 1024 });
+    return { data, width, height };
+  }
   const bitmap = await createImageBitmap(image, { colorSpaceConversion: 'none' });
   const canvas = document.createElement('canvas');
   canvas.width = bitmap.width;
@@ -76,14 +104,24 @@ async function decodeToImg(image: Blob): Promise<Img> {
   return { data, width, height };
 }
 
-/** Best reference match for one cropped, background-removed sprite. */
+/**
+ * Best reference match for one cropped, background-removed sprite. Each sprite is
+ * compared both ways (it and its mirror, since enemy sprites face the player) on
+ * a grayscale shape fingerprint and a coarse colour fingerprint; the two scores
+ * are blended by {@link COLOR_WEIGHT}.
+ */
 function bestMatch(rgba: Uint8ClampedArray, w: number, h: number): { species: string; sim: number } {
+  const flipped = flipH(rgba, w, h);
   const v = normalizeThumb(spriteThumbnail(rgba, w, h));
-  const vf = normalizeThumb(spriteThumbnail(flipH(rgba, w, h), w, h));
+  const vf = normalizeThumb(spriteThumbnail(flipped, w, h));
+  const cv = normalizeThumb(colorThumbnail(rgba, w, h));
+  const cvf = normalizeThumb(colorThumbnail(flipped, w, h));
   let bestSpecies = '';
   let bestSim = -1;
   for (const r of references()) {
-    const sim = Math.max(similarity(v, r.v), similarity(vf, r.v));
+    const shape = Math.max(similarity(v, r.v), similarity(vf, r.v));
+    const color = Math.max(similarity(cv, r.cv), similarity(cvf, r.cv));
+    const sim = (1 - COLOR_WEIGHT) * shape + COLOR_WEIGHT * color;
     if (sim > bestSim) { bestSim = sim; bestSpecies = r.species; }
   }
   return { species: bestSpecies, sim: bestSim };
@@ -118,7 +156,10 @@ export class LocalRecognizer implements TeamPreviewRecognizer {
     for (const [y0, y1] of slots) {
       const ch = y1 - y0;
       if (ch < 8 || y0 < 0 || y1 > img.height) continue;
-      const rgba = removeBackground(cropRGBA(img, x0, y0, spriteW, ch), spriteW, ch);
+      const rgba = keepLargestComponent(
+        removeEnemyBackground(cropRGBA(img, x0, y0, spriteW, ch), spriteW, ch),
+        spriteW, ch,
+      );
       const { species, sim } = bestMatch(rgba, spriteW, ch);
       const mon: DetectedPokemon = {
         side: 'enemy',
