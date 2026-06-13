@@ -48,16 +48,20 @@ function dump(tag, buf) {
   writeFileSync(`samples/derived-crops/${String(dumpId++).padStart(3, '0')}-${tag}.png`, buf);
 }
 
-const textWorker = await createWorker('eng', 1, { cachePath: 'node_modules/.cache/tesseract' });
-await textWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
-const digitWorker = await createWorker('eng', 1, { cachePath: 'node_modules/.cache/tesseract' });
-await digitWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, tessedit_char_whitelist: '0123456789 ' });
+// Stat lines stay unconstrained (they mix label + digits). Name/ability/item/
+// move fields get a LETTER whitelist so ambiguous glyphs can't become digits
+// ("Sash" -> "Jd51"), which was the only thing breaking the clean item crops.
+const WORD_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz .-'";
+const lineWorker = await createWorker('eng', 1, { cachePath: 'node_modules/.cache/tesseract' });
+await lineWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
+const wordWorker = await createWorker('eng', 1, { cachePath: 'node_modules/.cache/tesseract' });
+await wordWorker.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, tessedit_char_whitelist: WORD_CHARS });
 
-async function ocr(img, rect, { digits = false, tag = 'crop' } = {}) {
+async function ocr(img, rect, { word = false, tag = 'crop' } = {}) {
   const crop = toOcrCrop(img, rect, 3);
   const buf = cropToPng(crop);
   dump(tag, buf);
-  const worker = digits ? digitWorker : textWorker;
+  const worker = word ? wordWorker : lineWorker;
   const { data } = await worker.recognize(buf);
   return data.text.trim().replace(/\s+/g, ' ');
 }
@@ -78,7 +82,7 @@ const parsedStats = [];
 for (let i = 0; i < panels.length; i++) {
   const p = panels[i];
   const gt = GT[i];
-  const nameText = await ocr(statsImg, nameRect(p), { tag: `s${i}-name` });
+  const nameText = await ocr(statsImg, nameRect(p), { word: true, tag: `s${i}-name` });
   const match = fuzzyBest(nameText, speciesVocab);
   let species = match?.value ?? null;
 
@@ -147,14 +151,14 @@ for (let i = 0; i < mPanels.length; i++) {
   const matchIn = (text, vocab, globalVocab, tol) =>
     fuzzyBest(text, vocab, tol)?.value ?? fuzzyBest(text, globalVocab, tol)?.value ?? null;
 
-  const abilityText = await ocr(movesImg, abilityRect(p), { tag: `m${i}-ability` });
-  const itemText = await ocr(movesImg, itemRect(p), { tag: `m${i}-item` });
+  const abilityText = await ocr(movesImg, abilityRect(p), { word: true, tag: `m${i}-ability` });
+  const itemText = await ocr(movesImg, itemRect(p), { word: true, tag: `m${i}-item` });
   const ability = matchIn(abilityText, abilityVocab, allAbilities, 0.4) ?? abilityText;
   const item = matchIn(itemText, itemVocab, itemVocab, 0.5) ?? itemText;
 
   const moves = [];
   for (let slot = 0; slot < 4; slot++) {
-    const text = await ocr(movesImg, moveRect(p, slot), { tag: `m${i}-move${slot}` });
+    const text = await ocr(movesImg, moveRect(p, slot), { word: true, tag: `m${i}-move${slot}` });
     moves.push({ raw: text, match: matchIn(text, moveVocab, allMoves, 0.34) });
   }
 
@@ -171,5 +175,5 @@ for (let i = 0; i < mPanels.length; i++) {
 }
 console.log(`MOVES: abilities ${abOk}/6, items ${itOk}/6, moves ${mvOk}/${mvTotal}`);
 
-await textWorker.terminate();
-await digitWorker.terminate();
+await lineWorker.terminate();
+await wordWorker.terminate();

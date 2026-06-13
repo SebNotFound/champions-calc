@@ -48,14 +48,9 @@ export function IncomingPanel({ attacker, attackerName, enemies, field }: Props)
 
   return (
     <div className="incoming-panel">
-      <div className="incoming-head">
-        Incoming{attacker ? ` → ${attackerName}` : ''}
-      </div>
-
-      {enemies.length === 0 ? (
-        <p className="results-hint">Add an enemy (right) to see what it does to you.</p>
-      ) : (
-        <>
+      <div className="incoming-topline">
+        <span className="incoming-head">Incoming{attacker ? ` → ${attackerName}` : ''}</span>
+        {enemies.length > 0 && (
           <div className="incoming-tabs" role="tablist">
             {enemies.map((e, i) => (
               <button
@@ -71,15 +66,19 @@ export function IncomingPanel({ attacker, attackerName, enemies, field }: Props)
               </button>
             ))}
           </div>
+        )}
+      </div>
 
-          <div className="incoming-body">
-            {!attacker && <p className="results-hint">Set your attacker’s species to see incoming damage.</p>}
-            {attacker && rows.length === 0 && (
-              <p className="results-hint">Add moves to {enemy?.species} (in its card) to see incoming damage.</p>
-            )}
-            {attacker && rows.map((r) => <ResultRow key={r.move} r={r} />)}
-          </div>
-        </>
+      {enemies.length === 0 ? (
+        <p className="results-hint">Add an enemy (right) to see what it does to you.</p>
+      ) : (
+        <div className="incoming-body">
+          {!attacker && <p className="results-hint">Set your attacker’s species to see incoming damage.</p>}
+          {attacker && rows.length === 0 && (
+            <p className="results-hint">Add moves to {enemy?.species} (in its card) to see incoming damage.</p>
+          )}
+          {attacker && rows.map((r) => <ResultRow key={r.move} r={r} />)}
+        </div>
       )}
     </div>
   );
