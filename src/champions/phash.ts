@@ -1,19 +1,28 @@
 /**
  * Sprite fingerprinting + matching for the free Team Preview recognizer.
  *
- * Each sprite is reduced to a small, normalized grayscale "thumbnail" and
- * candidates are compared by cosine similarity. This keeps full grayscale detail
- * (unlike a 1-bit perceptual hash), preserves aspect ratio (letterboxed into a
- * square), and is brightness-normalized, so it tolerates the scaling and JPEG
+ * Each sprite is reduced to two small, normalized "thumbnails" — a grayscale one
+ * that captures shape/structure and a coarse colour one that captures palette —
+ * and candidates are compared by cosine similarity on both. Grayscale alone
+ * confuses similarly-shaped mons of different colours (a tan Hippowdon read as a
+ * pink Slowbro); the colour signature breaks those ties. Both keep full detail
+ * (unlike a 1-bit perceptual hash), preserve aspect ratio (letterboxed into a
+ * square), and are normalized, so they tolerate the scaling and JPEG
  * compression of a screenshot crop while still telling similar sprites apart.
  *
- * The SAME `spriteThumbnail` fingerprints the reference sprites offline
- * (scripts/fetch-sprites.mjs) and the cropped enemy sprites at runtime, so the
- * fingerprints are directly comparable. Transparent pixels are composited over
- * mid-grey so the silhouette (not the panel background) drives the match.
+ * The colour thumbnail is deliberately coarser ({@link CTHUMB}²) than the
+ * grayscale one: colour is low-frequency, so a smaller grid captures the palette
+ * layout without amplifying the misalignment/compression noise of a screenshot
+ * crop.
+ *
+ * The SAME `spriteThumbnail`/`colorThumbnail` fingerprint the reference sprites
+ * offline (scripts/fetch-sprites.mjs) and the cropped enemy sprites at runtime,
+ * so the fingerprints are directly comparable. Transparent pixels are composited
+ * over mid-grey so the silhouette (not the panel background) drives the match.
  */
 
-export const THUMB = 16; // thumbnail size (THUMB x THUMB grayscale)
+export const THUMB = 16; // grayscale thumbnail size (THUMB x THUMB)
+export const CTHUMB = 8; // colour thumbnail size (CTHUMB x CTHUMB x RGB)
 
 type RGBA = Uint8ClampedArray | Uint8Array | number[];
 
@@ -75,6 +84,51 @@ export function spriteThumbnail(rgba: RGBA, w: number, h: number): Uint8Array {
       let sum = 0, n = 0;
       for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { sum += square[y * side + x]; n++; }
       out[ty * THUMB + tx] = Math.round(sum / n);
+    }
+  }
+  return out;
+}
+
+/**
+ * Reduce an RGBA image to a coarse CTHUMB×CTHUMB×RGB colour thumbnail (Uint8),
+ * laid out [r,g,b, r,g,b, …] row-major. Same trim + letterbox as
+ * {@link spriteThumbnail} so the colour grid is spatially aligned with the
+ * grayscale one; transparent/letterbox pixels become neutral grey, which falls
+ * out of the comparison once the vector is mean-subtracted.
+ */
+export function colorThumbnail(rgba: RGBA, w: number, h: number): Uint8Array {
+  const [bx, by, bw, bh] = foregroundBBox(rgba, w, h);
+  const side = Math.max(bw, bh);
+  const sq = new Float32Array(side * side * 3).fill(128); // neutral letterbox
+  const offX = (side - bw) >> 1;
+  const offY = (side - bh) >> 1;
+  for (let y = 0; y < bh; y++) {
+    for (let x = 0; x < bw; x++) {
+      const i = ((by + y) * w + (bx + x)) * 4;
+      const a = rgba[i + 3] / 255;
+      const d = ((offY + y) * side + (offX + x)) * 3;
+      sq[d] = rgba[i] * a + 128 * (1 - a);
+      sq[d + 1] = rgba[i + 1] * a + 128 * (1 - a);
+      sq[d + 2] = rgba[i + 2] * a + 128 * (1 - a);
+    }
+  }
+
+  const out = new Uint8Array(CTHUMB * CTHUMB * 3);
+  for (let ty = 0; ty < CTHUMB; ty++) {
+    const y0 = Math.floor((ty * side) / CTHUMB);
+    const y1 = Math.max(y0 + 1, Math.floor(((ty + 1) * side) / CTHUMB));
+    for (let tx = 0; tx < CTHUMB; tx++) {
+      const x0 = Math.floor((tx * side) / CTHUMB);
+      const x1 = Math.max(x0 + 1, Math.floor(((tx + 1) * side) / CTHUMB));
+      let sr = 0, sg = 0, sb = 0, n = 0;
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+        const s = (y * side + x) * 3;
+        sr += sq[s]; sg += sq[s + 1]; sb += sq[s + 2]; n++;
+      }
+      const d = (ty * CTHUMB + tx) * 3;
+      out[d] = Math.round(sr / n);
+      out[d + 1] = Math.round(sg / n);
+      out[d + 2] = Math.round(sb / n);
     }
   }
   return out;

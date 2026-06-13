@@ -188,41 +188,124 @@ export function cropRGBA(img: Img, sx: number, sy: number, cw: number, ch: numbe
 }
 
 /**
- * Remove the panel background by flood-filling inward from the borders, only
- * into pixels matching the border colour palette (so it can't bleed through the
- * sprite). Cut pixels are made transparent.
+ * Border-seeded flood fill: returns a mask (1 = reached) of every pixel
+ * connected to the image border through pixels the predicate accepts. Shared by
+ * the background removers below.
  */
-export function removeBackground(rgba: Uint8ClampedArray, w: number, h: number, tol = 46): Uint8ClampedArray {
-  const col = (x: number, y: number) => { const i = (y * w + x) * 4; return [rgba[i], rgba[i + 1], rgba[i + 2]]; };
-  const near = (a: number[], b: number[]) => {
-    const dr = a[0] - b[0], dg = a[1] - b[1], db = a[2] - b[2];
-    return dr * dr + dg * dg + db * db < tol * tol;
-  };
-  const palette: number[][] = [];
-  const seen = new Set<string>();
-  const sample = (x: number, y: number) => {
-    const c = col(x, y);
-    const k = `${c[0] >> 4}_${c[1] >> 4}_${c[2] >> 4}`;
-    if (!seen.has(k)) { seen.add(k); palette.push(c); }
-  };
-  for (let x = 0; x < w; x++) { sample(x, 0); sample(x, h - 1); }
-  for (let y = 0; y < h; y++) { sample(0, y); sample(w - 1, y); }
-  const isBg = (x: number, y: number) => { const c = col(x, y); return palette.some((p) => near(c, p)); };
-
-  const visited = new Uint8Array(w * h);
+function floodMask(w: number, h: number, accept: (k: number) => boolean): Uint8Array {
+  const mask = new Uint8Array(w * h);
   const stack: number[] = [];
-  const seed = (x: number, y: number) => { const k = y * w + x; if (!visited[k]) { visited[k] = 1; stack.push(x, y); } };
-  for (let x = 0; x < w; x++) { seed(x, 0); seed(x, h - 1); }
-  for (let y = 0; y < h; y++) { seed(0, y); seed(w - 1, y); }
+  const seed = (k: number) => { if (!mask[k] && accept(k)) { mask[k] = 1; stack.push(k); } };
+  for (let x = 0; x < w; x++) { seed(x); seed((h - 1) * w + x); }
+  for (let y = 0; y < h; y++) { seed(y * w); seed(y * w + w - 1); }
   while (stack.length) {
-    const y = stack.pop()!, x = stack.pop()!;
-    const nbrs = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
-    for (const [nx, ny] of nbrs) {
-      if (nx < 0 || nx >= w || ny < 0 || ny >= h || visited[ny * w + nx]) continue;
-      if (isBg(nx, ny)) { visited[ny * w + nx] = 1; stack.push(nx, ny); }
+    const k = stack.pop()!;
+    const x = k % w;
+    const nbrs = [x > 0 ? k - 1 : -1, x < w - 1 ? k + 1 : -1, k - w, k + w];
+    for (const n of nbrs) {
+      if (n < 0 || n >= w * h || mask[n] || !accept(n)) continue;
+      mask[n] = 1; stack.push(n);
     }
   }
-  for (let k = 0; k < w * h; k++) if (visited[k]) rgba[k * 4 + 3] = 0;
+  return mask;
+}
+
+/** Predicate: pixel k is near one of the sampled border-palette colours. */
+function nearBorderPalette(rgba: Uint8ClampedArray, w: number, h: number, tol: number): (k: number) => boolean {
+  const palette: number[][] = [];
+  const seen = new Set<string>();
+  const sample = (k: number) => {
+    const i = k * 4, r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
+    const key = `${r >> 4}_${g >> 4}_${b >> 4}`;
+    if (!seen.has(key)) { seen.add(key); palette.push([r, g, b]); }
+  };
+  for (let x = 0; x < w; x++) { sample(x); sample((h - 1) * w + x); }
+  for (let y = 0; y < h; y++) { sample(y * w); sample(y * w + w - 1); }
+  const tol2 = tol * tol;
+  return (k: number) => {
+    const i = k * 4, r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
+    return palette.some((p) => {
+      const dr = r - p[0], dg = g - p[1], db = b - p[2];
+      return dr * dr + dg * dg + db * db < tol2;
+    });
+  };
+}
+
+/** Predicate: pixel k is the red enemy panel (incl. its dark edges and pale gloss). */
+function isRedPanel(rgba: Uint8ClampedArray): (k: number) => boolean {
+  return (k: number) => {
+    const i = k * 4, r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
+    if (r > 45 && r > g * 1.25 && r > b * 1.1) return true; // red panel + dark edges
+    return r > 175 && g > 160 && b > 160 && r >= g && r >= b - 4; // pale red-tinted gloss
+  };
+}
+
+/**
+ * Remove the panel background by flood-filling inward from the borders, only
+ * into pixels matching the border colour palette (so it can't bleed through the
+ * sprite). Cut pixels are made transparent. (Kept for the player/blue path and
+ * tests; the enemy path uses {@link removeEnemyBackground}.)
+ */
+export function removeBackground(rgba: Uint8ClampedArray, w: number, h: number, tol = 46): Uint8ClampedArray {
+  const mask = floodMask(w, h, nearBorderPalette(rgba, w, h, tol));
+  for (let k = 0; k < w * h; k++) if (mask[k]) rgba[k * 4 + 3] = 0;
+  return rgba;
+}
+
+/**
+ * Remove the red enemy-panel background, robust across every sprite colour.
+ *
+ * Two border-seeded floods, each with a blind spot, are intersected: a pixel is
+ * cut only if BOTH agree it's background. The palette flood ({@link
+ * removeBackground}) bridges from the dark-red edges into a sprite's own dark or
+ * grey pixels (it eats a purple Noivern, a grey-armoured Hippowdon); the red
+ * flood ({@link isRedPanel}) instead bridges into brown/tan fur (it eats a
+ * Lycanroc, a Kangaskhan). They fail on opposite colours, so any sprite pixel at
+ * least one of them protects survives — while the panel, which both recognise,
+ * is removed. Pair with {@link keepLargestComponent} to drop the leftover
+ * gender/item icons. Cut pixels are made transparent.
+ */
+export function removeEnemyBackground(rgba: Uint8ClampedArray, w: number, h: number, tol = 46): Uint8ClampedArray {
+  const palette = floodMask(w, h, nearBorderPalette(rgba, w, h, tol));
+  const red = floodMask(w, h, isRedPanel(rgba));
+  for (let k = 0; k < w * h; k++) if (palette[k] && red[k]) rgba[k * 4 + 3] = 0;
+  return rgba;
+}
+
+/**
+ * Keep only the largest connected blob of opaque pixels, making everything else
+ * transparent. After {@link removeBackground} the panel is gone but small opaque
+ * islands remain — the gender symbol, the held-item icon, and stray halo specks
+ * — and those inflate the foreground bounding box, shrinking the actual sprite
+ * within the thumbnail and wrecking the match. The Pokémon is by far the biggest
+ * blob, so keeping just it isolates the sprite cleanly and lets us crop a wide
+ * window (to fit big mons like Hippowdon) without the side icons leaking in.
+ */
+export function keepLargestComponent(rgba: Uint8ClampedArray, w: number, h: number): Uint8ClampedArray {
+  const opaque = (k: number) => rgba[k * 4 + 3] > 16;
+  const label = new Int32Array(w * h).fill(-1);
+  const stack: number[] = [];
+  let best = -1, bestSize = 0;
+  for (let start = 0; start < w * h; start++) {
+    if (label[start] !== -1 || !opaque(start)) continue;
+    label[start] = start;
+    stack.push(start);
+    let size = 0;
+    while (stack.length) {
+      const k = stack.pop()!;
+      size++;
+      const x = k % w;
+      const nbrs = [x > 0 ? k - 1 : -1, x < w - 1 ? k + 1 : -1, k - w, k + w];
+      for (const n of nbrs) {
+        if (n < 0 || n >= w * h || label[n] !== -1 || !opaque(n)) continue;
+        label[n] = start;
+        stack.push(n);
+      }
+    }
+    if (size > bestSize) { bestSize = size; best = start; }
+  }
+  if (best < 0) return rgba;
+  for (let k = 0; k < w * h; k++) if (label[k] !== best) rgba[k * 4 + 3] = 0;
   return rgba;
 }
 

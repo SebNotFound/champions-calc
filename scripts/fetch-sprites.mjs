@@ -7,7 +7,8 @@
  * The category is read live, so re-running picks up roster changes (e.g. the new
  * regulation on 2026-06-17 that adds megas like Mega Raichu).
  *
- * Output is an ARRAY of { species, a, d } fingerprints. Several reference
+ * Output is an ARRAY of { species, t, c } fingerprints (t = grayscale thumbnail,
+ * c = coarse colour thumbnail; both base64). Several reference
  * sprites can map to the same species (cosmetic formes — Vivillon patterns,
  * Alcremie flavours, Furfrou trims — are mechanically identical, so they all
  * point at the base species). Mechanically distinct formes (Alola, Galar, Hisui,
@@ -22,7 +23,7 @@ import { Generations } from '@pkmn/data';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spriteThumbnail, encodeThumb } from '../src/champions/phash.ts';
+import { spriteThumbnail, colorThumbnail, encodeThumb } from '../src/champions/phash.ts';
 
 const API = 'https://archives.bulbagarden.net/w/api.php';
 const OUT = fileURLToPath(new URL('../src/champions/data/sprite-hashes.json', import.meta.url));
@@ -114,7 +115,11 @@ await pool(titles, 5, async (title) => {
   if (!species || !url) { skipped++; return; }
   try {
     const png = PNG.sync.read(await fetchBuffer(url));
-    entries.push({ species, t: encodeThumb(spriteThumbnail(png.data, png.width, png.height)) });
+    entries.push({
+      species,
+      t: encodeThumb(spriteThumbnail(png.data, png.width, png.height)),
+      c: encodeThumb(colorThumbnail(png.data, png.width, png.height)),
+    });
     speciesSeen.add(toID(species));
   } catch {
     skipped++;
