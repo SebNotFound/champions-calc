@@ -27,8 +27,11 @@ import type { ChampionsSet, StatKey, StatSpread, NatureName } from '../champions
 export interface ReportInput { stats?: Blob; moves?: Blob; }
 export type ProgressFn = (done: number, total: number, label: string) => void;
 
-/** One minimal OCR worker abstraction (so the engine doesn't care about tesseract types). */
-interface TextWorker { read(crop: OcrCrop): Promise<string>; }
+/** Letters/spacing only — for name/ability/item/move fields, so an ambiguous
+ *  glyph can't become a digit ("Sash" → "Jd51"). Stat lines stay unconstrained. */
+const WORD_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz .-'";
+
+type ReadFn = (crop: OcrCrop) => Promise<string>;
 
 async function decodeImg(blob: Blob): Promise<Img> {
   const bitmap = await createImageBitmap(blob, { colorSpaceConversion: 'none' });
@@ -52,19 +55,21 @@ function cropToCanvas(crop: OcrCrop): HTMLCanvasElement {
   return canvas;
 }
 
-async function makeWorker(): Promise<{ worker: TextWorker; terminate: () => Promise<void> }> {
+async function makeWorkers(): Promise<{ readLine: ReadFn; readWord: ReadFn; terminate: () => Promise<void> }> {
   const { createWorker, PSM } = await import('tesseract.js');
-  const w = await createWorker('eng');
-  await w.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
+  const line = await createWorker('eng');
+  await line.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE });
+  const word = await createWorker('eng'); // lang data is cached after the first
+  await word.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_LINE, tessedit_char_whitelist: WORD_CHARS });
+  const reader = (w: typeof line): ReadFn => async (crop) => {
+    if (crop.width < 5 || crop.height < 5) return '';
+    const { data } = await w.recognize(cropToCanvas(crop));
+    return data.text.trim().replace(/\s+/g, ' ');
+  };
   return {
-    worker: {
-      read: async (crop) => {
-        if (crop.width < 3 || crop.height < 3) return '';
-        const { data } = await w.recognize(cropToCanvas(crop));
-        return data.text.trim().replace(/\s+/g, ' ');
-      },
-    },
-    terminate: async () => { await w.terminate(); },
+    readLine: reader(line),
+    readWord: reader(word),
+    terminate: async () => { await line.terminate(); await word.terminate(); },
   };
 }
 
@@ -112,13 +117,15 @@ export async function recognizeTeamReportLocal(input: ReportInput, onProgress?: 
   const count = Math.max(statsPanels.length, movesPanels.length);
   if (!count) throw new Error('No team panels found — is this the in-game team view?');
 
-  const { worker, terminate } = await makeWorker();
+  const { readLine, readWord, terminate } = await makeWorkers();
   // Rough op count for progress: per panel ~7 (stats) + ~6 (moves).
   const total = statsPanels.length * 7 + movesPanels.length * 6;
   let done = 0;
   const tick = (label: string) => onProgress?.(++done, total, label);
-  const ocr = async (img: Img, rect: Rect, label: string) => {
-    const t = await worker.read(toOcrCrop(img, rect, 3));
+  // `word` → letter-whitelisted read (names/abilities/items/moves); otherwise the
+  // plain reader for stat lines (which carry digits).
+  const ocr = async (img: Img, rect: Rect, label: string, word = false) => {
+    const t = await (word ? readWord : readLine)(toOcrCrop(img, rect, 3));
     tick(label);
     return t;
   };
@@ -133,7 +140,7 @@ export async function recognizeTeamReportLocal(input: ReportInput, onProgress?: 
 
       const sPanel = statsPanels[i];
       if (statsPick && sPanel) {
-        const nameText = await ocr(statsPick, nameRect(sPanel), 'name');
+        const nameText = await ocr(statsPick, nameRect(sPanel), 'name', true);
         species = fuzzyBest(nameText, allSpecies, 0.4)?.value ?? null;
 
         const reads = {} as StatReads;
@@ -169,17 +176,17 @@ export async function recognizeTeamReportLocal(input: ReportInput, onProgress?: 
       const mPanel = movesPanels[i];
       if (movesPick && mPanel) {
         if (!species) {
-          const nameText = await ocr(movesPick, nameRect(mPanel), 'name');
+          const nameText = await ocr(movesPick, nameRect(mPanel), 'name', true);
           species = fuzzyBest(nameText, allSpecies, 0.4)?.value ?? null;
         }
         const vocab = species ? await speciesVocab(species) : { abilities: allAbilities, moves: allMoves };
-        const abilityText = await ocr(movesPick, abilityRect(mPanel), 'ability');
-        const itemText = await ocr(movesPick, itemRect(mPanel), 'item');
+        const abilityText = await ocr(movesPick, abilityRect(mPanel), 'ability', true);
+        const itemText = await ocr(movesPick, itemRect(mPanel), 'item', true);
         ability = matchVocab(abilityText, vocab.abilities, allAbilities, 0.4) ?? undefined;
         item = matchVocab(itemText, allItems, allItems, 0.5) ?? undefined;
         moves = [];
         for (let slot = 0 as 0 | 1 | 2 | 3; slot < 4; slot++) {
-          const text = await ocr(movesPick, moveRect(mPanel, slot as 0 | 1 | 2 | 3), 'move');
+          const text = await ocr(movesPick, moveRect(mPanel, slot as 0 | 1 | 2 | 3), 'move', true);
           moves.push(matchVocab(text, vocab.moves, allMoves, 0.34) ?? '');
         }
         while (moves.length < 4) moves.push('');

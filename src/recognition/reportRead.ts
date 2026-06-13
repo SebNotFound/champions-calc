@@ -204,24 +204,31 @@ function otsu(g: Float32Array): number {
 }
 
 /**
- * Make an OCR-ready crop: upscale, binarize, and orient so the text (the
- * minority class) is black on white — handles both the report's white-on-purple
- * names and its dark-on-light numbers.
+ * Make an OCR-ready crop: upscale, binarize, orient so the text (the minority
+ * class) is black on white, and surround it with a white margin. The padding
+ * matters — tesseract misreads glyphs that touch the crop edge (it was turning
+ * an edge-touching "Focus Sash" into "TOCUS Jodi").
  */
-export function toOcrCrop(img: Img, r: Rect, scale = 3): OcrCrop {
+export function toOcrCrop(img: Img, r: Rect, scale = 3, pad = 12): OcrCrop {
   const { g, w, h } = grayCrop(img, r, scale);
   const t = otsu(g);
   let dark = 0;
   for (let i = 0; i < g.length; i++) if (g[i] < t) dark++;
   const inkIsDark = dark <= g.length / 2; // minority side = ink
-  const out = new Uint8ClampedArray(w * h * 4);
-  for (let i = 0; i < g.length; i++) {
-    const isInk = inkIsDark ? g[i] < t : g[i] >= t;
-    const v = isInk ? 0 : 255;
-    out[i * 4] = out[i * 4 + 1] = out[i * 4 + 2] = v;
-    out[i * 4 + 3] = 255;
+
+  const W = w + pad * 2;
+  const H = h + pad * 2;
+  const out = new Uint8ClampedArray(W * H * 4).fill(255); // white background + margin
+  for (let i = 3; i < out.length; i += 4) out[i] = 255;   // opaque
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if ((inkIsDark ? g[y * w + x] < t : g[y * w + x] >= t)) {
+        const o = ((y + pad) * W + (x + pad)) * 4;
+        out[o] = out[o + 1] = out[o + 2] = 0;
+      }
+    }
   }
-  return { data: out, width: w, height: h };
+  return { data: out, width: W, height: H };
 }
 
 // ---------------------------------------------------------------------------
