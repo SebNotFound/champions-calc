@@ -160,7 +160,8 @@ export default function App() {
         <div className="brand">
           <BrandLogo />
           <div className="brand-text">
-            <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
+            <span className="brand-kicker">CHAMPIONS</span>
+            <h1 className="wordmark">CALC</h1>
             <span className="reg-badge">
               {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} · {CHAMPIONS_FORMAT.gameType}
             </span>
