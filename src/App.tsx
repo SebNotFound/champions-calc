@@ -43,13 +43,12 @@ const PREVIEW_W = 304;
  * it easier to run down the list. We overlap the row by 1px so there's no dead
  * gap to cross on the way to the card.
  */
-function previewStyle(rect: DOMRect, side: 'player' | 'enemy', arena: boolean): CSSProperties {
+function previewStyle(rect: DOMRect, placement: 'left' | 'right'): CSSProperties {
   const top = Math.max(12, Math.min(rect.top - 4, window.innerHeight - 300));
   const base: CSSProperties = { position: 'fixed', top, width: PREVIEW_W, zIndex: 60 };
-  const toLeft = { ...base, right: window.innerWidth - rect.left - 1 };
-  const toRight = { ...base, left: rect.right - 1 };
-  if (arena) return side === 'player' ? toLeft : toRight;
-  return side === 'player' ? toRight : toLeft;
+  return placement === 'left'
+    ? { ...base, right: window.innerWidth - rect.left - 1 }
+    : { ...base, left: rect.right - 1 };
 }
 
 /** The first two members of a team, pre-built as battlers for the arena cards. */
@@ -478,7 +477,15 @@ export default function App() {
           targets={preview.targets}
           field={field}
           reverseField={incomingField}
-          style={previewStyle(preview.rect, preview.side, arena)}
+          style={previewStyle(
+            preview.rect,
+            // Arena: the roster is two columns, so the left column pops left and
+            // the right column pops right (even index = left column, odd = right).
+            // Normal layout: pop toward the centre (your side right, enemy left).
+            arena
+              ? ((hover?.index ?? 0) % 2 === 0 ? 'left' : 'right')
+              : (preview.side === 'player' ? 'right' : 'left'),
+          )}
           onMouseEnter={keepPreview}
           onMouseLeave={closePreview}
         />

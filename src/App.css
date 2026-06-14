@@ -546,6 +546,13 @@
 .arena-bar .team-col > .col-title { grid-column: 1 / -1; }
 .arena-bar .team-col > .team-slots { grid-column: 1; }
 .arena-bar .team-col > .member-list { grid-column: 2; }
+/* Mirror the enemy box: its roster on the left, its controls on the right, so
+   the whole bar reads symmetrically out from the centre screens. */
+.arena-bar .team-col--foe { grid-template-columns: 1.1fr minmax(150px, 0.9fr); }
+/* Pin both to row 1: with the title hidden, grid auto-placement would otherwise
+   stack them (it can't backtrack to col 1 after filling col 2 first). */
+.arena-bar .team-col--foe > .team-slots { grid-column: 2; grid-row: 1; }
+.arena-bar .team-col--foe > .member-list { grid-column: 1; grid-row: 1; }
 .arena-bar .member-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; align-content: start; }
 .arena-bar .member-add { grid-column: 1 / -1; }
 .arena-bar .member { padding: 3px 6px; }
@@ -559,7 +566,7 @@
 
 /* Team names stand vertically on the outer edges of the bar (frees the row they
    used to take up horizontally). */
-.arena-flag { writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; flex: 0 0 auto; }
+.arena-flag { writing-mode: vertical-rl; display: flex; align-items: center; justify-content: center; align-self: stretch; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; flex: 0 0 auto; }
 .arena-flag--ally { color: var(--ally); transform: rotate(180deg); }
 .arena-flag--foe { color: var(--foe); }
 /* The team box title and the condition-box titles are redundant in the bar. */
@@ -570,24 +577,47 @@
    damage panel on the right. Side by side keeps the card about as tall as the
    editor alone, so all four fit on screen. */
 .arena-card { display: flex; align-items: stretch; }
+/* Fixed three-column grid (identity | spread | moves) so the sections always sit
+   in one row and never wrap, regardless of their content widths. */
 .arena-card .mon-editor {
   flex: 1 1 auto; min-width: 0;
   border-radius: var(--radius) 0 0 var(--radius);
-  display: flex; flex-flow: row wrap; align-items: flex-start; align-content: flex-start; gap: 8px 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 205px) minmax(0, 1fr) minmax(0, 165px);
+  grid-auto-rows: min-content; align-items: start; gap: 8px 16px;
 }
 .arena-card .mon-editor::after { display: none; } /* drop the mid-card corner tick */
-.arena-card .mon-editor-head { flex: 1 1 100%; }
-/* identity = species name on top of nature/item/ability/status, as one column
-   beside the spread, so the name lands on the "Stat Points" line and its old
-   full-width row is gone. */
-.arena-card .mon-identity { flex: 1 1 195px; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.arena-card .spread-editor { flex: 1.3 1 235px; }
-.arena-card .moves-block { flex: 1 1 185px; }
-.arena-card .battle-state { flex: 1 1 100%; }
+.arena-card .mon-editor-head { grid-column: 1 / -1; }
+/* identity = species name on top of nature/item/ability/status, beside the
+   spread, so the name lands on the "Stat Points" line (its old full-width row
+   is gone). */
+.arena-card .mon-identity { grid-column: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.arena-card .spread-editor { grid-column: 2; min-width: 0; }
+.arena-card .moves-block { grid-column: 3; min-width: 0; }
+/* Moves as a vertical list (one per row), which narrows the column. */
+.arena-card .moves-grid { grid-template-columns: 1fr; gap: 5px; }
+.arena-card .battle-state { grid-column: 1 / -1; }
+/* Field layout: Nature and Status on one line, then Ability, then Item.
+   DOM order is Nature, Item, Ability, Status, so place them explicitly. */
+.arena-card .field-grid { grid-template-columns: 1fr 1fr; gap: 6px 8px; }
+.arena-card .field-grid > .field:nth-child(1) { grid-area: 1 / 1; }       /* Nature */
+.arena-card .field-grid > .field:nth-child(4) { grid-area: 1 / 2; }       /* Status */
+.arena-card .field-grid > .field:nth-child(3) { grid-area: 2 / 1 / 3 / 3; } /* Ability */
+.arena-card .field-grid > .field:nth-child(2) { grid-area: 3 / 1 / 4 / 3; } /* Item */
+/* Let the selects shrink so the identity column does not force the moves block
+   to wrap to its own row (which made the card tall). */
+.arena-card .field-grid .field, .arena-card .field-grid select, .arena-card .field-grid input { min-width: 0; }
 .arena-damage {
-  flex: 0 0 206px; margin-top: 0; align-self: stretch;
+  flex: 0 0 248px; margin-top: 0; align-self: stretch;
   border-radius: 0 var(--radius) var(--radius) 0;
   border-top: 1px solid var(--border); border-left: none;
+}
+/* Enemy cards mirror: the Damage from panel sits on the LEFT (toward the VS). */
+.arena-card--foe { flex-direction: row-reverse; }
+.arena-card--foe .mon-editor { border-radius: 0 var(--radius) var(--radius) 0; }
+.arena-card--foe .arena-damage {
+  border-radius: var(--radius) 0 0 var(--radius);
+  border-left: 1px solid var(--border); border-right: none;
 }
 /* Damage rows in arena: name + bar on one line, percent and KO chance under it. */
 .arena-damage .result-row { grid-template-columns: 84px 1fr; grid-auto-rows: min-content; column-gap: 8px; row-gap: 1px; align-items: center; }
