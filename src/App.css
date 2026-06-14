@@ -7,54 +7,40 @@
 
 .app { padding: 16px clamp(14px, 2vw, 36px); display: flex; flex-direction: column; gap: 16px; }
 
-/* Occasional bright scan pulses sweeping across the blueprint grid — quick, then
-   gone for a beat. Sit above the grid but behind all content (z-index -1), so
-   cards cover them. */
-.bg-fx { position: fixed; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
+/* Lightning pulses running across the grid — bright, with a glow, on top of the
+   content (z-index 2) so they're clearly visible. Each sweeps quickly, then
+   rests before the next. pointer-events:none so they never block clicks. */
+.bg-fx { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
 .bg-fx::before, .bg-fx::after { content: ''; position: absolute; will-change: transform, opacity; opacity: 0; }
 .bg-fx::before {
   left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--ally) 42%, #fff 50%, var(--ally) 58%, transparent);
-  filter: drop-shadow(0 0 7px var(--ally));
-  animation: scan-y 8s ease-in-out infinite;
+  background: linear-gradient(90deg, transparent, var(--ally) 38%, #ffffff 50%, var(--ally) 62%, transparent);
+  filter: drop-shadow(0 0 9px var(--ally)) drop-shadow(0 0 3px #fff);
+  animation: scan-y 6s ease-in-out infinite;
 }
 .bg-fx::after {
   top: 0; bottom: 0; width: 2px;
-  background: linear-gradient(180deg, transparent, var(--foe) 42%, #fff 50%, var(--foe) 58%, transparent);
-  filter: drop-shadow(0 0 7px var(--foe));
-  animation: scan-x 11s ease-in-out infinite 3.5s;
+  background: linear-gradient(180deg, transparent, var(--foe) 38%, #ffffff 50%, var(--foe) 62%, transparent);
+  filter: drop-shadow(0 0 9px var(--foe)) drop-shadow(0 0 3px #fff);
+  animation: scan-x 7.5s ease-in-out infinite 2.5s;
 }
-/* Sweep across in the first ~20% of the cycle, then stay off-screen (invisible)
-   for the rest, so a pulse only crosses now and then. */
+/* Sweep across in the first ~25% of the cycle, then rest off-screen. */
 @keyframes scan-y {
   0%   { transform: translateY(-6vh);  opacity: 0; }
-  4%   { opacity: 0.9; }
-  20%  { transform: translateY(106vh); opacity: 0.9; }
-  22%, 100% { transform: translateY(106vh); opacity: 0; }
+  3%   { opacity: 0.85; }
+  25%  { transform: translateY(106vh); opacity: 0.85; }
+  27%, 100% { transform: translateY(106vh); opacity: 0; }
 }
 @keyframes scan-x {
   0%   { transform: translateX(-4vw);  opacity: 0; }
-  4%   { opacity: 0.85; }
-  18%  { transform: translateX(104vw); opacity: 0.85; }
-  20%, 100% { transform: translateX(104vw); opacity: 0; }
+  3%   { opacity: 0.8; }
+  22%  { transform: translateX(104vw); opacity: 0.8; }
+  24%, 100% { transform: translateX(104vw); opacity: 0; }
 }
 
 @keyframes hud-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes header-flow { from { background-position: 0 0; } to { background-position: 520px 0; } }
 
-/* Glassmorphism: frosted, translucent panels. The blur over the grid + the scan
-   pulses sweeping behind gives a visible frosted glow; a top sheen reads as a
-   glass edge. */
-.team-slots, .mon-editor, .side-cond, .matchup-preview, .modal,
-.results, .incoming-panel {
-  -webkit-backdrop-filter: blur(11px) saturate(1.25);
-  backdrop-filter: blur(11px) saturate(1.25);
-}
-.team-slots, .mon-editor, .side-cond, .matchup-preview, .modal { background-color: var(--panel-glass); }
-.results, .incoming-panel { background-color: var(--panel2-glass); }
-.team-slots, .mon-editor, .side-cond, .results, .incoming-panel {
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-}
 
 /* ---- Header banner: one row — brand | weather/terrain (centered) | controls ---- */
 .app-header {
@@ -93,7 +79,7 @@
 .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
 /* EXO mark: the "EX" artwork + the neon pokéball as the "O". The gap before the
    pokéball mirrors the E–X gap baked into the image. */
-.brand-exo { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.brand-exo { display: flex; align-items: center; gap: 30px; flex-shrink: 0; }
 .brand-ex { height: 26px; width: auto; display: block; }
 [data-theme='light'] .brand-ex { filter: invert(1); }
 .brand-logo {
@@ -417,7 +403,9 @@
   display: grid; place-items: center;
   transition: background 0.15s, color 0.15s, transform 0.25s ease;
 }
-.mp-rev:hover { background: var(--ally); color: #04141b; box-shadow: 0 0 12px -2px var(--ally); }
+/* :not(:disabled) raises specificity above the global button:hover rule, which
+   would otherwise paint the arrow's background dark and hide it. */
+.mp-rev:hover:not(:disabled) { background: var(--ally); color: #04141b; border-color: var(--ally); }
 .mp-rev.reversed { transform: rotate(180deg); }
 .mp-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .mp-tab {
@@ -525,3 +513,23 @@
 .report-set-text strong { font-size: 13px; font-family: var(--font-display); }
 .report-set-text span { color: var(--text-dim); }
 .report-set-moves { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ============================================================================
+   Glassmorphism — placed LAST so it wins over the base panel backgrounds.
+   Translucent + blurred so the grid and the scan pulses behind show through; a
+   bright top edge reads as the lit edge of glass.
+   ========================================================================== */
+.team-slots, .mon-editor, .side-cond, .matchup-preview, .modal,
+.results, .incoming-panel {
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  backdrop-filter: blur(12px) saturate(1.3);
+  border-top-color: rgba(255, 255, 255, 0.14);
+}
+.team-slots, .mon-editor, .side-cond, .matchup-preview, .modal { background-color: var(--panel-glass); }
+.results, .incoming-panel { background-color: var(--panel2-glass); }
+.mon-editor, .team-slots, .side-cond, .results, .incoming-panel {
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+/* Keep the attacker/defender accent edge even with the glass top-border. */
+.mon-editor--attacker { border-top-color: var(--ally); }
+.defender-card .mon-editor { border-top-color: var(--foe); }

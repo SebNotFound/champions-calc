@@ -74,8 +74,7 @@ export function MatchupPreview({ attacker, attackerName, moves, targets, field, 
         <button
           className={`mp-rev${reversed ? ' reversed' : ''}`}
           onClick={() => setReversed((r) => !r)}
-          title="Reverse — swap attacker and defender (damage done ⇄ damage taken)"
-          aria-label="Reverse the matchup"
+          aria-label="Reverse the matchup (damage done / taken)"
         >→</button>
         <span className="mp-name">{rightName}</span>
       </div>
