@@ -61,18 +61,14 @@ export function toIncomingField(state: FieldState): Field {
   });
 }
 
-interface Props {
-  value: FieldState;
-  onChange: (next: FieldState) => void;
-  /** Clear every battle condition (field + each Pokémon's status/boosts). */
-  onReset: () => void;
-}
-
-export function FieldControls({ value, onChange, onReset }: Props) {
+/**
+ * Weather + terrain — the field-wide conditions that affect both directions.
+ * Lives centered in the header.
+ */
+export function WeatherTerrain({ value, onChange }: { value: FieldState; onChange: (next: FieldState) => void }) {
   const patch = (changes: Partial<FieldState>) => onChange({ ...value, ...changes });
-
   return (
-    <div className="field-controls">
+    <div className="weather-terrain">
       <label className="field">
         <span>Weather</span>
         <select
@@ -86,7 +82,6 @@ export function FieldControls({ value, onChange, onReset }: Props) {
           <option value="Snow">Snow</option>
         </select>
       </label>
-
       <label className="field">
         <span>Terrain</span>
         <select
@@ -100,46 +95,47 @@ export function FieldControls({ value, onChange, onReset }: Props) {
           <option value="Misty">Misty</option>
         </select>
       </label>
-
-      <label className="field-hh">
-        <input type="checkbox" checked={value.helpingHand} onChange={(e) => patch({ helpingHand: e.target.checked })} />
-        Helping Hand
-      </label>
-
-      <ScreenToggles
-        label="Your screens"
-        hint="On your side — cut the damage you take (incoming)"
-        screens={value.yours}
-        onChange={(c) => patch({ yours: { ...value.yours, ...c } })}
-      />
-      <ScreenToggles
-        label="Their screens"
-        hint="On their side — cut the damage you deal (outgoing)"
-        screens={value.theirs}
-        onChange={(c) => patch({ theirs: { ...value.theirs, ...c } })}
-      />
-
-      <button className="reset-btn" onClick={onReset} title="Clear weather, terrain, screens, statuses and boosts">
-        Reset conditions
-      </button>
     </div>
   );
 }
 
-function ScreenToggles({
-  label, hint, screens, onChange,
+/**
+ * One side's battle conditions, shown as a box beneath that side's team:
+ *   - Your side  (ally): Helping Hand + your screens (cut the damage you take).
+ *   - Enemy side (foe):  their screens (cut the damage you deal).
+ */
+export function SideConditions({
+  variant, title, screens, onScreens, helpingHand, onHelpingHand,
 }: {
-  label: string;
-  hint: string;
+  variant: 'ally' | 'foe';
+  title: string;
   screens: Screens;
-  onChange: (changes: Partial<Screens>) => void;
+  onScreens: (changes: Partial<Screens>) => void;
+  /** Only the ally side passes these (Helping Hand is your support move). */
+  helpingHand?: boolean;
+  onHelpingHand?: (v: boolean) => void;
 }) {
   return (
-    <div className="screen-group" title={hint}>
-      <span className="screen-label">{label}</span>
-      <label><input type="checkbox" checked={screens.reflect} onChange={(e) => onChange({ reflect: e.target.checked })} /> Reflect</label>
-      <label><input type="checkbox" checked={screens.lightScreen} onChange={(e) => onChange({ lightScreen: e.target.checked })} /> Light Screen</label>
-      <label><input type="checkbox" checked={screens.auroraVeil} onChange={(e) => onChange({ auroraVeil: e.target.checked })} /> Aurora Veil</label>
+    <div className={`side-cond side-cond--${variant}`}>
+      <div className="side-cond-head">{title}</div>
+      {onHelpingHand && (
+        <label className="cond-row">
+          <input type="checkbox" checked={!!helpingHand} onChange={(e) => onHelpingHand(e.target.checked)} />
+          <span>Helping Hand <em>×1.5 to your moves</em></span>
+        </label>
+      )}
+      <label className="cond-row">
+        <input type="checkbox" checked={screens.reflect} onChange={(e) => onScreens({ reflect: e.target.checked })} />
+        <span>Reflect</span>
+      </label>
+      <label className="cond-row">
+        <input type="checkbox" checked={screens.lightScreen} onChange={(e) => onScreens({ lightScreen: e.target.checked })} />
+        <span>Light Screen</span>
+      </label>
+      <label className="cond-row">
+        <input type="checkbox" checked={screens.auroraVeil} onChange={(e) => onScreens({ auroraVeil: e.target.checked })} />
+        <span>Aurora Veil</span>
+      </label>
     </div>
   );
 }
