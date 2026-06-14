@@ -15,7 +15,7 @@ import { PokemonEditor } from './ui/PokemonEditor';
 import { DefenderCard } from './ui/DefenderCard';
 import { IncomingPanel } from './ui/IncomingPanel';
 import { TeamColumn } from './ui/TeamColumn';
-import { FieldControls, defaultFieldState, toField, toIncomingField } from './ui/FieldControls';
+import { WeatherTerrain, SideConditions, defaultFieldState, toField, toIncomingField } from './ui/FieldControls';
 import type { FieldState } from './ui/FieldControls';
 import { SharedDatalists } from './ui/widgets';
 import { ImportDialog } from './ui/ImportDialog';
@@ -157,16 +157,22 @@ export default function App() {
       <SharedDatalists />
 
       <header className="app-header">
-        <div className="header-top">
-          <div className="brand">
-            <BrandLogo />
-            <div className="brand-text">
-              <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
-              <span className="reg-badge">
-                {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} · {CHAMPIONS_FORMAT.gameType}
-              </span>
-            </div>
+        <div className="brand">
+          <BrandLogo />
+          <div className="brand-text">
+            <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
+            <span className="reg-badge">
+              {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} · {CHAMPIONS_FORMAT.gameType}
+            </span>
           </div>
+        </div>
+
+        <WeatherTerrain value={fieldState} onChange={setFieldState} />
+
+        <div className="header-right">
+          <button className="reset-btn" onClick={handleResetConditions} title="Clear weather, terrain, screens, statuses and boosts">
+            Reset conditions
+          </button>
           <button
             className="theme-toggle"
             onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
@@ -176,27 +182,36 @@ export default function App() {
             {theme === 'dark' ? '☀' : '☾'}
           </button>
         </div>
-        <FieldControls value={fieldState} onChange={setFieldState} onReset={handleResetConditions} />
       </header>
 
       <main className="calc-layout">
-        <TeamColumn
-          title="My Team"
-          variant="ally"
-          teams={playerTeams}
-          activeIdx={playerTeamIdx}
-          selectedMemberIdx={safeAttackerIdx}
-          onSelectMember={setAttackerIdx}
-          onSelectTeam={selectPlayerTeam}
-          onAddTeam={addPlayerTeam}
-          onRenameTeam={renamePlayerTeam}
-          onDeleteTeam={deletePlayerTeam}
-          onImportText={() => setPasteSide('player')}
-          onImportPhoto={() => setPhotoSide('player')}
-          onImportReport={() => setReportOpen(true)}
-          onAddMember={addPlayerMember}
-          onRemoveMember={removePlayerMember}
-        />
+        <div className="side-stack">
+          <TeamColumn
+            title="My Team"
+            variant="ally"
+            teams={playerTeams}
+            activeIdx={playerTeamIdx}
+            selectedMemberIdx={safeAttackerIdx}
+            onSelectMember={setAttackerIdx}
+            onSelectTeam={selectPlayerTeam}
+            onAddTeam={addPlayerTeam}
+            onRenameTeam={renamePlayerTeam}
+            onDeleteTeam={deletePlayerTeam}
+            onImportText={() => setPasteSide('player')}
+            onImportPhoto={() => setPhotoSide('player')}
+            onImportReport={() => setReportOpen(true)}
+            onAddMember={addPlayerMember}
+            onRemoveMember={removePlayerMember}
+          />
+          <SideConditions
+            variant="ally"
+            title="Your side"
+            screens={fieldState.yours}
+            onScreens={(c) => setFieldState((s) => ({ ...s, yours: { ...s.yours, ...c } }))}
+            helpingHand={fieldState.helpingHand}
+            onHelpingHand={(v) => setFieldState((s) => ({ ...s, helpingHand: v }))}
+          />
+        </div>
 
         <section className="center-col">
           {/* Top line: your attacker vs the two active enemies. */}
@@ -260,22 +275,30 @@ export default function App() {
           )}
         </section>
 
-        <TeamColumn
-          title="Enemy Team"
-          variant="foe"
-          teams={enemyTeams}
-          activeIdx={enemyTeamIdx}
-          onSelectTeam={selectEnemyTeam}
-          onAddTeam={addEnemyTeam}
-          onRenameTeam={renameEnemyTeam}
-          onDeleteTeam={deleteEnemyTeam}
-          onImportText={() => setPasteSide('enemy')}
-          onImportPhoto={() => setPhotoSide('enemy')}
-          onAddMember={addEnemyMember}
-          onRemoveMember={removeEnemyMember}
-          onMemberReorder={swapEnemyMembers}
-          addLabel="+ Add target"
-        />
+        <div className="side-stack">
+          <TeamColumn
+            title="Enemy Team"
+            variant="foe"
+            teams={enemyTeams}
+            activeIdx={enemyTeamIdx}
+            onSelectTeam={selectEnemyTeam}
+            onAddTeam={addEnemyTeam}
+            onRenameTeam={renameEnemyTeam}
+            onDeleteTeam={deleteEnemyTeam}
+            onImportText={() => setPasteSide('enemy')}
+            onImportPhoto={() => setPhotoSide('enemy')}
+            onAddMember={addEnemyMember}
+            onRemoveMember={removeEnemyMember}
+            onMemberReorder={swapEnemyMembers}
+            addLabel="+ Add target"
+          />
+          <SideConditions
+            variant="foe"
+            title="Enemy screens"
+            screens={fieldState.theirs}
+            onScreens={(c) => setFieldState((s) => ({ ...s, theirs: { ...s.theirs, ...c } }))}
+          />
+        </div>
       </main>
 
       <footer className="app-footer">
