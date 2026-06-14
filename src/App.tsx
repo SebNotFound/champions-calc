@@ -353,10 +353,17 @@ export default function App() {
 
       <footer className="app-footer">
         <BrandLogo className="footer-logo" />
-        <p>
-          Stats use the Champions Stat Points model (66 SP, 32/stat, perfect IVs).
-          Damage by <code>@smogon/calc</code>. Mega &amp; roster data is a work in progress.
-        </p>
+        <div className="footer-text">
+          <p>
+            Stats use the Champions Stat Points model (66 SP, 32/stat, perfect IVs).
+            Damage by <code>@smogon/calc</code>. Mega &amp; roster data is a work in progress.
+          </p>
+          <p className="footer-credit">
+            Made by <a href="https://github.com/SebNotFound" target="_blank" rel="noopener noreferrer">SebNotFound</a>.
+            If you want to help me,{' '}
+            <a className="kofi-link" href="https://ko-fi.com/sebnotfound" target="_blank" rel="noopener noreferrer">buy me a Ko-fi ☕</a>
+          </p>
+        </div>
       </footer>
 
       {preview && preview.targets.length > 0 && (
