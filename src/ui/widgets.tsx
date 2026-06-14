@@ -81,7 +81,14 @@ interface ComboboxProps {
   'aria-label'?: string;
 }
 
-/** A text input backed by a shared datalist (type-ahead over big lists). */
+/**
+ * A text input backed by a shared datalist (type-ahead over big lists).
+ *
+ * NB: we deliberately do NOT set `autocomplete="off"`. Chrome suppresses the
+ * <datalist> suggestion dropdown entirely when autocomplete is off, which made
+ * these pickers type-only (you had to type the whole name). Leaving it unset
+ * lets the datalist show.
+ */
 export function Combobox({ value, onChange, listId, placeholder, className, ...rest }: ComboboxProps) {
   return (
     <input
@@ -91,7 +98,6 @@ export function Combobox({ value, onChange, listId, placeholder, className, ...r
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
       spellCheck={false}
-      autoComplete="off"
       {...rest}
     />
   );

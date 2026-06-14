@@ -164,7 +164,6 @@ export function PokemonEditor({
             placeholder={mega ? 'No item (Mega)' : 'Item…'}
             disabled={!!mega}
             spellCheck={false}
-            autoComplete="off"
           />
         </label>
         <label className="field">
