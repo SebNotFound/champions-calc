@@ -57,9 +57,10 @@ same goes for each side's Helping Hand.
 
 * **Text.** Paste a standard Showdown or pokepaste block and it fills the side for you.
 * **Photo.** Drop a Team Preview screenshot. On the enemy (red) side it reads the sprites on
-  device for free. If it cannot place them confidently, for example a low resolution shot or
-  panels lost in the battle effects, it tells you, and you can crop the six panels yourself or
-  switch to the more precise engine.
+  device for free. Be warned, this part is still very clunky and does not work very well yet.
+  It is decent on a clean, high resolution Team Preview, but it misreads a lot otherwise. When
+  it is not confident it tells you, and you can crop the six panels yourself or switch to the
+  more precise engine. For now the text and team report imports are far more reliable.
 * **Team report.** Feed it the two report screenshots, the Stats tab and the Moves and More
   tab, and it reads the whole team, spreads and all, for free using on device OCR.
 

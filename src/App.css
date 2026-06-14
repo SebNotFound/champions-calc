@@ -345,6 +345,16 @@
   display: flex; align-items: center; gap: 14px; letter-spacing: 0.02em;
 }
 .app-footer p { margin: 0; }
+.footer-text { display: flex; flex-direction: column; gap: 4px; }
+.footer-credit { color: var(--text-dim); }
+.footer-credit a { color: var(--ally); text-decoration: none; font-weight: 600; }
+.footer-credit a:hover { text-decoration: underline; }
+.kofi-link {
+  display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; margin-left: 2px;
+  border: 1px solid var(--foe-line); border-radius: 999px; background: var(--foe-soft);
+  color: var(--foe) !important; font-weight: 700;
+}
+.kofi-link:hover { background: var(--foe); color: #1a0309 !important; text-decoration: none !important; }
 .footer-logo {
   width: 38px; height: 26px; flex-shrink: 0; opacity: 0.7;
   fill: none; stroke: var(--text-dim); stroke-width: 2.4; stroke-linecap: round;
