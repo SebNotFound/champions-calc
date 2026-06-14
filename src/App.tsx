@@ -373,15 +373,16 @@ export default function App() {
            takes and a tab to pick which of the opposing two is hitting it. */
         <>
           <div className="arena-bar">
+            <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
             {playerColumn}
             {playerConditions}
             {enemyConditions}
             {enemyColumn}
+            <div className="arena-flag arena-flag--foe"><span>ENEMY TEAM</span></div>
           </div>
 
           <main className="arena-ground">
             <div className="arena-col arena-col--ally">
-              <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
               {playerTeam.members.length === 0
                 ? <p className="results-hint">Add a Pokémon to your team above.</p>
                 : playerTeam.members.slice(0, 2).map((set, i) => (
@@ -404,7 +405,6 @@ export default function App() {
             <div className="arena-vs"><span>VS</span></div>
 
             <div className="arena-col arena-col--foe">
-              <div className="arena-flag arena-flag--foe"><span>ENEMY TEAM</span></div>
               {enemyTeam.members.length === 0
                 ? <p className="results-hint">Add a target to the enemy team above.</p>
                 : enemyTeam.members.slice(0, 2).map((set, i) => (
