@@ -33,6 +33,8 @@ interface Props {
   addLabel?: string;
   /** Allegiance colour: 'ally' (your cyan side) or 'foe' (the enemy's rose side). */
   variant?: 'ally' | 'foe';
+  /** Hover a member to preview its matchup; null on leave. `rect` anchors the popup. */
+  onHoverMember?: (index: number | null, rect: DOMRect | null) => void;
 }
 
 export function TeamColumn(props: Props) {
@@ -63,6 +65,8 @@ export function TeamColumn(props: Props) {
               key={i}
               className={`member${active ? ' active' : ''}${selectable ? '' : ' member--static'}${reorderable ? ' member--drag' : ''}`}
               onClick={selectable ? () => props.onSelectMember!(i) : undefined}
+              onMouseEnter={(e) => props.onHoverMember?.(i, (e.currentTarget as HTMLElement).getBoundingClientRect())}
+              onMouseLeave={() => props.onHoverMember?.(null, null)}
               draggable={reorderable || undefined}
               onDragStart={reorderable ? (e) => { e.dataTransfer.setData('text/plain', String(i)); e.dataTransfer.effectAllowed = 'move'; } : undefined}
               onDragOver={reorderable ? (e) => e.preventDefault() : undefined}
