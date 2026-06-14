@@ -137,6 +137,10 @@ export function PokemonEditor({
         )}
       </div>
 
+      {/* Species name + the nature/item/ability/status grid are grouped so arena
+          mode can sit them as one column beside the stat spread (in the normal
+          layout they just stack as before). */}
+      <div className="mon-identity">
       <Combobox
         className="species-input"
         value={set.megaForme ?? set.species}
@@ -183,6 +187,7 @@ export function PokemonEditor({
             {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
         </label>
+      </div>
       </div>
 
       <StatSpreadEditor
