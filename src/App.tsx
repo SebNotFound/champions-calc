@@ -39,8 +39,8 @@ function previewStyle(rect: DOMRect, side: 'player' | 'enemy'): CSSProperties {
   const top = Math.max(12, Math.min(rect.top - 4, window.innerHeight - 300));
   const base: CSSProperties = { position: 'fixed', top, width: PREVIEW_W, zIndex: 60 };
   return side === 'player'
-    ? { ...base, left: rect.right + 8 }
-    : { ...base, right: window.innerWidth - rect.left + 8 };
+    ? { ...base, left: rect.right + 4 }
+    : { ...base, right: window.innerWidth - rect.left + 4 };
 }
 
 export default function App() {
@@ -163,11 +163,11 @@ export default function App() {
   const hoverTimer = useRef<number | undefined>(undefined);
   const onHover = (side: 'player' | 'enemy') => (index: number | null, rect: DOMRect | null) => {
     window.clearTimeout(hoverTimer.current);
-    if (index === null || !rect) hoverTimer.current = window.setTimeout(() => setHover(null), 160);
+    if (index === null || !rect) hoverTimer.current = window.setTimeout(() => setHover(null), 280);
     else setHover({ side, index, rect });
   };
   const keepPreview = () => window.clearTimeout(hoverTimer.current);
-  const closePreview = () => { hoverTimer.current = window.setTimeout(() => setHover(null), 160); };
+  const closePreview = () => { hoverTimer.current = window.setTimeout(() => setHover(null), 280); };
 
   // Build the preview's attacker + targets from whichever member is hovered.
   const preview = useMemo(() => {

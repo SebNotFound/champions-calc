@@ -51,8 +51,9 @@ export function MatchupPreview({ attacker, attackerName, moves, targets, field, 
   const defMon = reversed ? attacker : targetMon;
   const dirField = reversed ? reverseField : field;
   const dirMoves = reversed ? (targetSet?.moves ?? []) : moves;
-  const leftName = reversed ? (targetSet?.species ?? '') : attackerName;
-  const rightName = reversed ? attackerName : (targetSet?.species ?? '');
+  // Names stay put — only the arrow rotates to show the direction.
+  const leftName = attackerName;
+  const rightName = targetSet?.species ?? '';
 
   const cleanMoves = useMemo(
     () => Array.from(new Set(dirMoves.map((m) => m.trim()).filter(Boolean))),
@@ -71,7 +72,7 @@ export function MatchupPreview({ attacker, attackerName, moves, targets, field, 
       <div className="mp-title">
         <span className="mp-name">{leftName}</span>
         <button
-          className="mp-rev"
+          className={`mp-rev${reversed ? ' reversed' : ''}`}
           onClick={() => setReversed((r) => !r)}
           title="Reverse — swap attacker and defender (damage done ⇄ damage taken)"
           aria-label="Reverse the matchup"
