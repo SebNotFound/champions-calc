@@ -516,3 +516,53 @@
 /* Keep the attacker/defender accent edge even with the glass top-border. */
 .mon-editor--attacker { border-top-color: var(--ally); }
 .defender-card .mon-editor { border-top-color: var(--foe); }
+
+/* ============================================================================
+   Arena mode — the same calc, arranged as a mirrored face-off. Your team and
+   attacker on the left, the enemy team and targets on the right, a VS divider
+   down the middle, and a team flag standing on each outer edge.
+   ========================================================================== */
+.arena-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); cursor: pointer; }
+.arena-toggle input { width: auto; accent-color: var(--ally); }
+
+.arena { display: flex; align-items: stretch; gap: 12px; animation: hud-rise 0.4s ease both; }
+.arena-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+
+/* Rosters sit on the outer edges (roster out, conditions in), so the hover
+   preview pops outward, clear of the rest of the list. */
+.arena-roster { display: flex; gap: 12px; align-items: flex-start; }
+.arena-roster .team-col { flex: 1; min-width: 0; }
+/* Two columns of member chips, to read more like a team sheet. */
+.arena-roster .member-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; align-content: start; }
+.arena-roster .member-add { grid-column: 1 / -1; }
+
+/* The matchup cards, capped and pulled toward the centre divider. */
+.arena-stage { display: flex; flex-direction: column; gap: 12px; }
+.arena-stage > * { width: 100%; max-width: 560px; }
+.arena-side--ally .arena-stage { align-items: flex-end; }
+.arena-side--foe .arena-stage { align-items: flex-start; }
+
+.arena-vs { position: relative; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
+.arena-vs::before {
+  content: ''; position: absolute; top: 8px; bottom: 8px; left: 50%; width: 2px; transform: translateX(-50%);
+  background: linear-gradient(180deg, transparent, var(--ally) 25%, #fff 50%, var(--foe) 75%, transparent);
+  opacity: 0.6;
+}
+.arena-vs span {
+  position: relative; font-family: var(--font-display); font-weight: 800; font-size: 26px;
+  color: var(--text); background: var(--bg); padding: 8px 4px; border-radius: 4px; letter-spacing: 0.04em;
+  text-shadow: 0 0 14px var(--ally-line);
+}
+
+.arena-flag { display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; flex-shrink: 0; }
+.arena-flag--ally { color: var(--ally); transform: rotate(180deg); }
+.arena-flag--foe { color: var(--foe); }
+
+/* On a narrow screen, drop the face-off and stack the two sides. */
+@media (max-width: 1000px) {
+  .arena { flex-direction: column; }
+  .arena-flag { writing-mode: horizontal-tb; transform: none; }
+  .arena-vs::before { display: none; }
+  .arena-stage > * { max-width: none; }
+  .arena-side--ally .arena-stage, .arena-side--foe .arena-stage { align-items: stretch; }
+}
