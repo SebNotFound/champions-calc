@@ -13,6 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Pokemon } from '@smogon/calc';
 import { MatchupPreview } from './ui/MatchupPreview';
+import { ArenaCard, type Battler } from './ui/ArenaCard';
 import { PokemonEditor } from './ui/PokemonEditor';
 import { DefenderCard } from './ui/DefenderCard';
 import { IncomingPanel } from './ui/IncomingPanel';
@@ -49,6 +50,20 @@ function previewStyle(rect: DOMRect, side: 'player' | 'enemy', arena: boolean): 
   const toRight = { ...base, left: rect.right - 1 };
   if (arena) return side === 'player' ? toLeft : toRight;
   return side === 'player' ? toRight : toLeft;
+}
+
+/** The first two members of a team, pre-built as battlers for the arena cards. */
+function toBattlers(members: ChampionsSet[]): Battler[] {
+  return members.slice(0, 2).map((s) => {
+    let mon: Pokemon | null = null;
+    try { mon = buildPokemon(s); } catch { mon = null; }
+    return {
+      name: s.megaForme ?? s.species,
+      species: s.megaForme ?? s.species,
+      mon,
+      moves: Array.from(new Set((s.moves ?? []).map((m) => m.trim()).filter(Boolean))),
+    };
+  });
 }
 
 export default function App() {
@@ -120,6 +135,15 @@ export default function App() {
       [next[from], next[to]] = [next[to], next[from]];
       return next;
     });
+  // Same drag-to-swap for your own team, so in arena mode you choose your two
+  // active battlers (the first two) the same way you do for the enemy.
+  const swapPlayerMembers = (from: number, to: number) =>
+    updateMembers('playerTeams', playerTeamIdx, (ms) => {
+      if (from === to || from < 0 || to < 0 || from >= ms.length || to >= ms.length) return ms;
+      const next = [...ms];
+      [next[from], next[to]] = [next[to], next[from]];
+      return next;
+    });
 
   // ---- team slots ----
   const selectPlayerTeam = (i: number) => { setState((s) => ({ ...s, playerTeamIdx: i })); setAttackerIdx(0); };
@@ -165,6 +189,10 @@ export default function App() {
   );
   const field = useMemo(() => toField(fieldState), [fieldState]);          // outgoing: you → them
   const incomingField = useMemo(() => toIncomingField(fieldState), [fieldState]); // incoming: them → you
+
+  // Arena mode's two active battlers per side (the first two members), pre-built.
+  const playerBattlers = useMemo(() => toBattlers(playerTeam.members), [playerTeam.members]);
+  const enemyBattlers = useMemo(() => toBattlers(enemyTeam.members), [enemyTeam.members]);
 
   // ---- hover matchup preview ----
   // Hovering a list member pops a focused damage card next to it. A short close
@@ -225,6 +253,7 @@ export default function App() {
       onImportReport={() => setReportOpen(true)}
       onAddMember={addPlayerMember}
       onRemoveMember={removePlayerMember}
+      onMemberReorder={swapPlayerMembers}
       onHoverMember={onHover('player')}
     />
   );
@@ -338,28 +367,64 @@ export default function App() {
       </header>
 
       {arena ? (
-        /* Arena: the two teams face off, mirrored, with the rosters on the outer
-           edges and the matchup in the middle. Your attacker on the left, the
-           enemy targets stacked on the right. */
-        <main className="arena">
-          <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
-          <section className="arena-side arena-side--ally">
-            <div className="arena-roster">{playerColumn}{playerConditions}</div>
-            <div className="arena-stage">{attackerBlock}</div>
-          </section>
+        /* Arena: a 2v2 battle. A single management bar up top (both rosters and
+           both sides' conditions), then the battleground: your two actives on the
+           left, the enemy's two on the right, each a wide card with the damage it
+           takes and a tab to pick which of the opposing two is hitting it. */
+        <>
+          <div className="arena-bar">
+            {playerColumn}
+            {playerConditions}
+            {enemyConditions}
+            {enemyColumn}
+          </div>
 
-          <div className="arena-vs"><span>VS</span></div>
-
-          <section className="arena-side arena-side--foe">
-            <div className="arena-roster">{enemyConditions}{enemyColumn}</div>
-            <div className="arena-stage">
-              {enemyTeam.members.length === 0
-                ? <p className="results-hint">No targets yet. Add one in the Enemy Team box.</p>
-                : enemyTeam.members.map((d, i) => renderDefender(d, i))}
+          <main className="arena-ground">
+            <div className="arena-col arena-col--ally">
+              <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
+              {playerTeam.members.length === 0
+                ? <p className="results-hint">Add a Pokémon to your team above.</p>
+                : playerTeam.members.slice(0, 2).map((set, i) => (
+                    <ArenaCard
+                      key={`pa-${playerTeamIdx}-${i}`}
+                      set={set}
+                      onChange={(next) => updateMembers('playerTeams', playerTeamIdx, (ms) => ms.map((m, j) => (j === i ? next : m)))}
+                      onRemove={() => removePlayerMember(i)}
+                      index={i}
+                      onSwap={swapPlayerMembers}
+                      role="attacker"
+                      side="ally"
+                      title={`Your ${i + 1}`}
+                      attackers={enemyBattlers}
+                      field={incomingField}
+                    />
+                  ))}
             </div>
-          </section>
-          <div className="arena-flag arena-flag--foe"><span>ENEMY TEAM</span></div>
-        </main>
+
+            <div className="arena-vs"><span>VS</span></div>
+
+            <div className="arena-col arena-col--foe">
+              <div className="arena-flag arena-flag--foe"><span>ENEMY TEAM</span></div>
+              {enemyTeam.members.length === 0
+                ? <p className="results-hint">Add a target to the enemy team above.</p>
+                : enemyTeam.members.slice(0, 2).map((set, i) => (
+                    <ArenaCard
+                      key={`ea-${enemyTeamIdx}-${i}`}
+                      set={set}
+                      onChange={(next) => updateEnemyMember(i, next)}
+                      onRemove={() => removeEnemyMember(i)}
+                      index={i}
+                      onSwap={swapEnemyMembers}
+                      role="defender"
+                      side="foe"
+                      title={`Target ${i + 1}`}
+                      attackers={playerBattlers}
+                      field={field}
+                    />
+                  ))}
+            </div>
+          </main>
+        </>
       ) : (
         <main className="calc-layout">
           <div className="side-stack">{playerColumn}{playerConditions}</div>

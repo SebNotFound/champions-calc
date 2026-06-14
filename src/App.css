@@ -518,51 +518,85 @@
 .defender-card .mon-editor { border-top-color: var(--foe); }
 
 /* ============================================================================
-   Arena mode — the same calc, arranged as a mirrored face-off. Your team and
-   attacker on the left, the enemy team and targets on the right, a VS divider
-   down the middle, and a team flag standing on each outer edge.
+   Arena mode — a 2v2 battle. One management bar (both rosters + both sides'
+   conditions), then a battleground: your two actives on the left, the enemy's
+   two on the right, VS down the middle. Each card is the full editor laid out
+   wide and short, with its damage panel and an attacker tab beneath.
    ========================================================================== */
 .arena-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); cursor: pointer; }
 .arena-toggle input { width: auto; accent-color: var(--ally); }
 
-.arena { display: flex; align-items: stretch; gap: 12px; animation: hud-rise 0.4s ease both; }
-.arena-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
-
-/* Rosters sit on the outer edges (roster out, conditions in), so the hover
-   preview pops outward, clear of the rest of the list. */
-.arena-roster { display: flex; gap: 12px; align-items: flex-start; }
-.arena-roster .team-col { flex: 1; min-width: 0; }
+/* Management bar: My Team roster, your conditions, enemy conditions, enemy roster. */
+.arena-bar {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 10px 12px; background-color: var(--panel-glass);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
+  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  animation: hud-rise 0.4s ease both;
+}
+.arena-bar > .team-col { flex: 1 1 0; min-width: 0; gap: 6px; }
+.arena-bar > .side-cond { flex: 0 0 auto; align-self: stretch; }
 /* Two columns of member chips, to read more like a team sheet. */
-.arena-roster .member-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; align-content: start; }
-.arena-roster .member-add { grid-column: 1 / -1; }
+.arena-bar .member-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; align-content: start; }
+.arena-bar .member-add { grid-column: 1 / -1; }
+/* Compact the bar so it does not eat the battleground's height. */
+.arena-bar .team-slots { gap: 5px; padding: 7px; }
+.arena-bar .member { padding: 3px 6px; }
+.arena-bar .member-sprite { width: 28px; height: 28px; }
+.arena-bar .member-name { font-size: 12px; }
+.arena-bar .import-btn { padding: 6px 4px; }
+.arena-bar .side-cond { padding: 8px 10px; gap: 5px; }
+.arena-bar .cond-row { font-size: 12px; }
 
-/* The matchup cards, capped and pulled toward the centre divider. */
-.arena-stage { display: flex; flex-direction: column; gap: 12px; }
-.arena-stage > * { width: 100%; max-width: 560px; }
-.arena-side--ally .arena-stage { align-items: flex-end; }
-.arena-side--foe .arena-stage { align-items: flex-start; }
+/* Battleground. */
+.arena-ground { display: flex; gap: 14px; align-items: flex-start; }
+.arena-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
 
-.arena-vs { position: relative; display: flex; align-items: center; justify-content: center; padding: 0 6px; }
+.arena-flag { font-family: var(--font-display); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.16em; display: flex; align-items: center; gap: 8px; }
+.arena-flag::before { content: ''; width: 14px; height: 3px; border-radius: 1px; }
+.arena-flag--ally { color: var(--ally); }
+.arena-flag--ally::before { background: var(--ally); box-shadow: 0 0 10px var(--ally); }
+.arena-flag--foe { color: var(--foe); justify-content: flex-end; }
+.arena-flag--foe::before { order: 2; background: var(--foe); box-shadow: 0 0 10px var(--foe); }
+
+/* The card: editor on the left (its sections wrap into a row so it stays short),
+   damage panel on the right. Side by side keeps the card about as tall as the
+   editor alone, so all four fit on screen. */
+.arena-card { display: flex; align-items: stretch; }
+.arena-card .mon-editor {
+  flex: 1 1 auto; min-width: 0;
+  border-radius: var(--radius) 0 0 var(--radius);
+  display: flex; flex-flow: row wrap; align-items: flex-start; align-content: flex-start; gap: 8px 14px;
+}
+.arena-card .mon-editor::after { display: none; } /* drop the mid-card corner tick */
+.arena-card .mon-editor-head,
+.arena-card .species-input { flex: 1 1 100%; }
+.arena-card .field-grid { flex: 1 1 175px; }
+.arena-card .spread-editor { flex: 1 1 215px; }
+.arena-card .moves-block { flex: 1 1 175px; }
+.arena-card .battle-state { flex: 1 1 100%; }
+.arena-damage {
+  flex: 0 0 230px; margin-top: 0; align-self: stretch;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  border-top: 1px solid var(--border); border-left: none;
+}
+
+/* VS divider. */
+.arena-vs { position: relative; display: flex; align-items: center; justify-content: center; align-self: stretch; padding: 0 6px; }
 .arena-vs::before {
   content: ''; position: absolute; top: 8px; bottom: 8px; left: 50%; width: 2px; transform: translateX(-50%);
   background: linear-gradient(180deg, transparent, var(--ally) 25%, #fff 50%, var(--foe) 75%, transparent);
   opacity: 0.6;
 }
 .arena-vs span {
-  position: relative; font-family: var(--font-display); font-weight: 800; font-size: 26px;
-  color: var(--text); background: var(--bg); padding: 8px 4px; border-radius: 4px; letter-spacing: 0.04em;
-  text-shadow: 0 0 14px var(--ally-line);
+  position: relative; font-family: var(--font-display); font-weight: 800; font-size: 24px;
+  color: var(--text); background: var(--bg); padding: 8px 4px; border-radius: 4px; text-shadow: 0 0 14px var(--ally-line);
 }
 
-.arena-flag { display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: 0.24em; text-transform: uppercase; flex-shrink: 0; }
-.arena-flag--ally { color: var(--ally); transform: rotate(180deg); }
-.arena-flag--foe { color: var(--foe); }
-
-/* On a narrow screen, drop the face-off and stack the two sides. */
-@media (max-width: 1000px) {
-  .arena { flex-direction: column; }
-  .arena-flag { writing-mode: horizontal-tb; transform: none; }
-  .arena-vs::before { display: none; }
-  .arena-stage > * { max-width: none; }
-  .arena-side--ally .arena-stage, .arena-side--foe .arena-stage { align-items: stretch; }
+/* Narrow screens: stack the two sides, lay the VS line flat between them. */
+@media (max-width: 1100px) {
+  .arena-bar { flex-wrap: wrap; }
+  .arena-ground { flex-direction: column; }
+  .arena-vs { align-self: center; padding: 4px 0; }
+  .arena-vs::before { inset: auto 8px; left: 8px; right: 8px; top: 50%; bottom: auto; width: auto; height: 2px; background: linear-gradient(90deg, transparent, var(--ally), var(--foe), transparent); }
 }
