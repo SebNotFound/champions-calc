@@ -1,8 +1,9 @@
 /**
  * In-battle stat-stage boosts (e.g. +2 Atk from Swords Dance), always visible —
  * one custom stepper per stat (no default browser number spinners). Click the
- * chevrons or scroll over a cell to adjust; range is clamped to ±6. Major status
- * lives up in the editor's field grid (next to Ability).
+ * chevrons to adjust; range is clamped to ±6. We deliberately do NOT bind the
+ * mouse wheel here: it would hijack page scrolling and change a boost by
+ * accident. Major status lives up in the editor's field grid (next to Ability).
  */
 import type { StatTable } from '../champions';
 
@@ -32,11 +33,7 @@ export function BattleState({ boosts, onBoosts }: Props) {
         {BOOST_STATS.map(({ key, label }) => {
           const v = boosts[key] ?? 0;
           return (
-            <div
-              key={key}
-              className="boost-cell"
-              onWheel={(e) => { e.preventDefault(); set(key, v + (e.deltaY < 0 ? 1 : -1)); }}
-            >
+            <div key={key} className="boost-cell">
               <span className="boost-label">{label}</span>
               <div className="boost-stepper">
                 <span className={`boost-val${v > 0 ? ' pos' : v < 0 ? ' neg' : ''}`}>
