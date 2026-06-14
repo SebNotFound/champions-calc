@@ -37,10 +37,12 @@ const PREVIEW_W = 304;
 /** Place the hover preview just inside the hovered row, toward the centre. */
 function previewStyle(rect: DOMRect, side: 'player' | 'enemy'): CSSProperties {
   const top = Math.max(12, Math.min(rect.top - 4, window.innerHeight - 300));
+  // Overlap the row by 1px (no dead gap to cross) so moving onto the card never
+  // closes it before its onMouseEnter fires.
   const base: CSSProperties = { position: 'fixed', top, width: PREVIEW_W, zIndex: 60 };
   return side === 'player'
-    ? { ...base, left: rect.right + 4 }
-    : { ...base, right: window.innerWidth - rect.left + 4 };
+    ? { ...base, left: rect.right - 1 }
+    : { ...base, right: window.innerWidth - rect.left - 1 };
 }
 
 export default function App() {
@@ -163,11 +165,11 @@ export default function App() {
   const hoverTimer = useRef<number | undefined>(undefined);
   const onHover = (side: 'player' | 'enemy') => (index: number | null, rect: DOMRect | null) => {
     window.clearTimeout(hoverTimer.current);
-    if (index === null || !rect) hoverTimer.current = window.setTimeout(() => setHover(null), 280);
+    if (index === null || !rect) hoverTimer.current = window.setTimeout(() => setHover(null), 400);
     else setHover({ side, index, rect });
   };
   const keepPreview = () => window.clearTimeout(hoverTimer.current);
-  const closePreview = () => { hoverTimer.current = window.setTimeout(() => setHover(null), 280); };
+  const closePreview = () => { hoverTimer.current = window.setTimeout(() => setHover(null), 400); };
 
   // Build the preview's attacker + targets from whichever member is hovered.
   const preview = useMemo(() => {
@@ -201,7 +203,7 @@ export default function App() {
       <header className="app-header">
         <div className="brand">
           <div className="brand-exo" title="EXO">
-            <span className="brand-ex">EX</span>
+            <img className="brand-ex" src="/ex.png" alt="EXO" />
             <BrandLogo />
           </div>
           <div className="brand-text">

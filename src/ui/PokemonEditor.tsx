@@ -191,6 +191,7 @@ export function PokemonEditor({
         nature={set.nature}
         level={set.level}
         onChange={(statPoints) => patch({ statPoints })}
+        item={mega ? undefined : set.item}
       />
 
       {/* Moves are shown for both sides now: the attacker's drive the damage to
