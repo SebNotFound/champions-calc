@@ -9,8 +9,10 @@
  *  • The enemy team's Pokémon are the calc targets; every attacker move is
  *    scored against each, live.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import type { Pokemon } from '@smogon/calc';
+import { MatchupPreview } from './ui/MatchupPreview';
 import { PokemonEditor } from './ui/PokemonEditor';
 import { DefenderCard } from './ui/DefenderCard';
 import { IncomingPanel } from './ui/IncomingPanel';
@@ -30,6 +32,16 @@ import type { ChampionsSet, Team, SavedState } from './champions';
 import './App.css';
 
 type TeamKey = 'playerTeams' | 'enemyTeams';
+
+const PREVIEW_W = 304;
+/** Place the hover preview just inside the hovered row, toward the centre. */
+function previewStyle(rect: DOMRect, side: 'player' | 'enemy'): CSSProperties {
+  const top = Math.max(12, Math.min(rect.top - 4, window.innerHeight - 300));
+  const base: CSSProperties = { position: 'fixed', top, width: PREVIEW_W, zIndex: 60 };
+  return side === 'player'
+    ? { ...base, left: rect.right + 8 }
+    : { ...base, right: window.innerWidth - rect.left + 8 };
+}
 
 export default function App() {
   const [state, setState] = useState<SavedState>(() => loadState() ?? seedState());
@@ -143,6 +155,35 @@ export default function App() {
   const field = useMemo(() => toField(fieldState), [fieldState]);          // outgoing: you → them
   const incomingField = useMemo(() => toIncomingField(fieldState), [fieldState]); // incoming: them → you
 
+  // ---- hover matchup preview ----
+  // Hovering a list member pops a focused damage card next to it. A short close
+  // delay (cleared when the cursor moves onto the card) keeps it open so the
+  // enemy tabs stay clickable.
+  const [hover, setHover] = useState<{ side: 'player' | 'enemy'; index: number; rect: DOMRect } | null>(null);
+  const hoverTimer = useRef<number | undefined>(undefined);
+  const onHover = (side: 'player' | 'enemy') => (index: number | null, rect: DOMRect | null) => {
+    window.clearTimeout(hoverTimer.current);
+    if (index === null || !rect) hoverTimer.current = window.setTimeout(() => setHover(null), 160);
+    else setHover({ side, index, rect });
+  };
+  const keepPreview = () => window.clearTimeout(hoverTimer.current);
+  const closePreview = () => { hoverTimer.current = window.setTimeout(() => setHover(null), 160); };
+
+  // Build the preview's attacker + targets from whichever member is hovered.
+  const preview = useMemo(() => {
+    if (!hover) return null;
+    if (hover.side === 'enemy') {
+      const tgt = enemyTeam.members[hover.index];
+      if (!tgt) return null;
+      return { attacker: attackerMon, attackerName: attackerMon?.name ?? attacker.species, moves: attackerMoves, targets: [tgt], rect: hover.rect, side: hover.side };
+    }
+    const src = playerTeam.members[hover.index];
+    if (!src) return null;
+    let mon: Pokemon | null = null;
+    try { mon = buildPokemon(src); } catch { mon = null; }
+    return { attacker: mon, attackerName: src.megaForme ?? src.species, moves: src.moves ?? [], targets: enemyTeam.members.slice(0, 2), rect: hover.rect, side: hover.side };
+  }, [hover, enemyTeam.members, playerTeam.members, attackerMon, attacker.species, attackerMoves]);
+
   // Reset every battle condition: field (weather/terrain/screens/Helping Hand)
   // plus each active Pokémon's status and stat boosts.
   const handleResetConditions = () => {
@@ -160,8 +201,7 @@ export default function App() {
         <div className="brand">
           <BrandLogo />
           <div className="brand-text">
-            <span className="brand-kicker">CHAMPIONS</span>
-            <h1 className="wordmark">CALC</h1>
+            <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
             <span className="reg-badge">
               {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} · {CHAMPIONS_FORMAT.gameType}
             </span>
@@ -203,6 +243,7 @@ export default function App() {
             onImportReport={() => setReportOpen(true)}
             onAddMember={addPlayerMember}
             onRemoveMember={removePlayerMember}
+            onHoverMember={onHover('player')}
           />
           <SideConditions
             variant="ally"
@@ -292,6 +333,7 @@ export default function App() {
             onRemoveMember={removeEnemyMember}
             onMemberReorder={swapEnemyMembers}
             addLabel="+ Add target"
+            onHoverMember={onHover('enemy')}
           />
           <SideConditions
             variant="foe"
@@ -311,6 +353,19 @@ export default function App() {
           Damage by <code>@smogon/calc</code>. Mega &amp; roster data is a work in progress.
         </p>
       </footer>
+
+      {preview && preview.targets.length > 0 && (
+        <MatchupPreview
+          attacker={preview.attacker}
+          attackerName={preview.attackerName}
+          moves={preview.moves}
+          targets={preview.targets}
+          field={field}
+          style={previewStyle(preview.rect, preview.side)}
+          onMouseEnter={keepPreview}
+          onMouseLeave={closePreview}
+        />
+      )}
 
       <ImportDialog side={photoSide} onClose={() => setPhotoSide(null)} onImport={handlePhotoImport} />
       <TeamReportDialog
