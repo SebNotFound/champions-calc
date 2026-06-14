@@ -41,7 +41,7 @@ export default function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('champions-calc/theme');
     if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    return 'dark'; // the "Stadium" battlefield is dark-first; toggle for daylight
   });
 
   // Mirror every change to localStorage so saved teams survive a refresh.
@@ -182,6 +182,7 @@ export default function App() {
       <main className="calc-layout">
         <TeamColumn
           title="My Team"
+          variant="ally"
           teams={playerTeams}
           activeIdx={playerTeamIdx}
           selectedMemberIdx={safeAttackerIdx}
@@ -261,6 +262,7 @@ export default function App() {
 
         <TeamColumn
           title="Enemy Team"
+          variant="foe"
           teams={enemyTeams}
           activeIdx={enemyTeamIdx}
           onSelectTeam={selectEnemyTeam}
