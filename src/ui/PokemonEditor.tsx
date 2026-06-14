@@ -198,7 +198,7 @@ export function PokemonEditor({
           each target, and a defender's drive the "incoming" damage back to your
           active Pokémon (see DefenderCard). */}
       <div className="moves-block">
-        <span className="block-label">{role === 'attacker' ? 'Moves' : 'Moves (used for incoming damage)'}</span>
+        <span className="block-label">Moves</span>
         <div className="moves-grid">
           {[0, 1, 2, 3].map((i) => (
             <Combobox
