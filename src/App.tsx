@@ -34,15 +34,21 @@ import './App.css';
 type TeamKey = 'playerTeams' | 'enemyTeams';
 
 const PREVIEW_W = 304;
-/** Place the hover preview just inside the hovered row, toward the centre. */
-function previewStyle(rect: DOMRect, side: 'player' | 'enemy'): CSSProperties {
+/**
+ * Place the hover preview next to the hovered row. In the normal layout it pops
+ * toward the centre (player on the right, enemy on the left). In arena mode the
+ * teams sit on the two sides, so it pops OUTWARD instead (your team to the left,
+ * the enemy to the right), which keeps it off the rest of the roster and makes
+ * it easier to run down the list. We overlap the row by 1px so there's no dead
+ * gap to cross on the way to the card.
+ */
+function previewStyle(rect: DOMRect, side: 'player' | 'enemy', arena: boolean): CSSProperties {
   const top = Math.max(12, Math.min(rect.top - 4, window.innerHeight - 300));
-  // Overlap the row by 1px (no dead gap to cross) so moving onto the card never
-  // closes it before its onMouseEnter fires.
   const base: CSSProperties = { position: 'fixed', top, width: PREVIEW_W, zIndex: 60 };
-  return side === 'player'
-    ? { ...base, left: rect.right - 1 }
-    : { ...base, right: window.innerWidth - rect.left - 1 };
+  const toLeft = { ...base, right: window.innerWidth - rect.left - 1 };
+  const toRight = { ...base, left: rect.right - 1 };
+  if (arena) return side === 'player' ? toLeft : toRight;
+  return side === 'player' ? toRight : toLeft;
 }
 
 export default function App() {
@@ -57,6 +63,8 @@ export default function App() {
     if (saved === 'light' || saved === 'dark') return saved;
     return 'dark'; // the "Stadium" battlefield is dark-first; toggle for daylight
   });
+  // Arena mode: same calc, a mirrored "VS" disposition. Off by default, remembered.
+  const [arena, setArena] = useState<boolean>(() => localStorage.getItem('champions-calc/arena') === '1');
 
   // Mirror every change to localStorage so saved teams survive a refresh.
   useEffect(() => saveState(state), [state]);
@@ -65,6 +73,7 @@ export default function App() {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem('champions-calc/theme', theme);
   }, [theme]);
+  useEffect(() => { localStorage.setItem('champions-calc/arena', arena ? '1' : '0'); }, [arena]);
 
   const { playerTeams, enemyTeams, playerTeamIdx, enemyTeamIdx } = state;
   const playerTeam = playerTeams[playerTeamIdx];
@@ -195,6 +204,100 @@ export default function App() {
     updateMembers('enemyTeams', enemyTeamIdx, (ms) => ms.map(clear));
   };
 
+  // The layout pieces are defined once here, then arranged two ways below (the
+  // normal three-column layout, or the mirrored arena layout). Same components,
+  // same props, same behaviour, so drag/drop, hover and the calc are identical
+  // in both. Only the disposition changes.
+  const playerColumn = (
+    <TeamColumn
+      title="My Team"
+      variant="ally"
+      teams={playerTeams}
+      activeIdx={playerTeamIdx}
+      selectedMemberIdx={safeAttackerIdx}
+      onSelectMember={setAttackerIdx}
+      onSelectTeam={selectPlayerTeam}
+      onAddTeam={addPlayerTeam}
+      onRenameTeam={renamePlayerTeam}
+      onDeleteTeam={deletePlayerTeam}
+      onImportText={() => setPasteSide('player')}
+      onImportPhoto={() => setPhotoSide('player')}
+      onImportReport={() => setReportOpen(true)}
+      onAddMember={addPlayerMember}
+      onRemoveMember={removePlayerMember}
+      onHoverMember={onHover('player')}
+    />
+  );
+  const playerConditions = (
+    <SideConditions
+      variant="ally"
+      title="Your side"
+      screens={fieldState.yours}
+      onScreens={(c) => setFieldState((s) => ({ ...s, yours: { ...s.yours, ...c } }))}
+      helpingHand={fieldState.helpingHand}
+      onHelpingHand={(v) => setFieldState((s) => ({ ...s, helpingHand: v }))}
+    />
+  );
+  const enemyColumn = (
+    <TeamColumn
+      title="Enemy Team"
+      variant="foe"
+      teams={enemyTeams}
+      activeIdx={enemyTeamIdx}
+      onSelectTeam={selectEnemyTeam}
+      onAddTeam={addEnemyTeam}
+      onRenameTeam={renameEnemyTeam}
+      onDeleteTeam={deleteEnemyTeam}
+      onImportText={() => setPasteSide('enemy')}
+      onImportPhoto={() => setPhotoSide('enemy')}
+      onAddMember={addEnemyMember}
+      onRemoveMember={removeEnemyMember}
+      onMemberReorder={swapEnemyMembers}
+      addLabel="+ Add target"
+      onHoverMember={onHover('enemy')}
+    />
+  );
+  const enemyConditions = (
+    <SideConditions
+      variant="foe"
+      title="Enemy side"
+      screens={fieldState.theirs}
+      onScreens={(c) => setFieldState((s) => ({ ...s, theirs: { ...s.theirs, ...c } }))}
+      helpingHand={fieldState.enemyHelpingHand}
+      onHelpingHand={(v) => setFieldState((s) => ({ ...s, enemyHelpingHand: v }))}
+    />
+  );
+  const attackerBlock = (
+    <div className="attacker-col">
+      <PokemonEditor
+        key={`p-${playerTeamIdx}-${safeAttackerIdx}`}
+        set={attacker}
+        onChange={updateAttacker}
+        role="attacker"
+        title="Attacker"
+      />
+      <IncomingPanel
+        attacker={attackerMon}
+        attackerName={attackerMon?.name ?? attacker.species}
+        enemies={enemyTeam.members.slice(0, 2)}
+        field={incomingField}
+      />
+    </div>
+  );
+  const renderDefender = (d: ChampionsSet, idx: number) => (
+    <DefenderCard
+      key={`e-${enemyTeamIdx}-${idx}`}
+      index={idx}
+      set={d}
+      onChange={(next) => updateEnemyMember(idx, next)}
+      onRemove={() => removeEnemyMember(idx)}
+      onSwap={swapEnemyMembers}
+      attacker={attackerMon}
+      attackerMoves={attackerMoves}
+      field={field}
+    />
+  );
+
   return (
     <div className="app">
       <SharedDatalists />
@@ -216,6 +319,10 @@ export default function App() {
         <WeatherTerrain value={fieldState} onChange={setFieldState} />
 
         <div className="header-right">
+          <label className="arena-toggle" title="Switch to the mirrored battle arena layout">
+            <input type="checkbox" checked={arena} onChange={(e) => setArena(e.target.checked)} />
+            Arena
+          </label>
           <button className="reset-btn" onClick={handleResetConditions} title="Clear weather, terrain, screens, statuses and boosts">
             Reset conditions
           </button>
@@ -230,126 +337,57 @@ export default function App() {
         </div>
       </header>
 
-      <main className="calc-layout">
-        <div className="side-stack">
-          <TeamColumn
-            title="My Team"
-            variant="ally"
-            teams={playerTeams}
-            activeIdx={playerTeamIdx}
-            selectedMemberIdx={safeAttackerIdx}
-            onSelectMember={setAttackerIdx}
-            onSelectTeam={selectPlayerTeam}
-            onAddTeam={addPlayerTeam}
-            onRenameTeam={renamePlayerTeam}
-            onDeleteTeam={deletePlayerTeam}
-            onImportText={() => setPasteSide('player')}
-            onImportPhoto={() => setPhotoSide('player')}
-            onImportReport={() => setReportOpen(true)}
-            onAddMember={addPlayerMember}
-            onRemoveMember={removePlayerMember}
-            onHoverMember={onHover('player')}
-          />
-          <SideConditions
-            variant="ally"
-            title="Your side"
-            screens={fieldState.yours}
-            onScreens={(c) => setFieldState((s) => ({ ...s, yours: { ...s.yours, ...c } }))}
-            helpingHand={fieldState.helpingHand}
-            onHelpingHand={(v) => setFieldState((s) => ({ ...s, helpingHand: v }))}
-          />
-        </div>
+      {arena ? (
+        /* Arena: the two teams face off, mirrored, with the rosters on the outer
+           edges and the matchup in the middle. Your attacker on the left, the
+           enemy targets stacked on the right. */
+        <main className="arena">
+          <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
+          <section className="arena-side arena-side--ally">
+            <div className="arena-roster">{playerColumn}{playerConditions}</div>
+            <div className="arena-stage">{attackerBlock}</div>
+          </section>
 
-        <section className="center-col">
-          {/* Top line: your attacker vs the two active enemies. */}
-          <div className="battle-row">
-            <div className="attacker-col">
-              <PokemonEditor
-                key={`p-${playerTeamIdx}-${safeAttackerIdx}`}
-                set={attacker}
-                onChange={updateAttacker}
-                role="attacker"
-                title="Attacker"
-              />
-              <IncomingPanel
-                attacker={attackerMon}
-                attackerName={attackerMon?.name ?? attacker.species}
-                enemies={enemyTeam.members.slice(0, 2)}
-                field={incomingField}
-              />
+          <div className="arena-vs"><span>VS</span></div>
+
+          <section className="arena-side arena-side--foe">
+            <div className="arena-roster">{enemyConditions}{enemyColumn}</div>
+            <div className="arena-stage">
+              {enemyTeam.members.length === 0
+                ? <p className="results-hint">No targets yet. Add one in the Enemy Team box.</p>
+                : enemyTeam.members.map((d, i) => renderDefender(d, i))}
             </div>
-            {enemyTeam.members.slice(0, 2).map((d, i) => (
-              <DefenderCard
-                key={`e-${enemyTeamIdx}-${i}`}
-                index={i}
-                set={d}
-                onChange={(next) => updateEnemyMember(i, next)}
-                onRemove={() => removeEnemyMember(i)}
-                onSwap={swapEnemyMembers}
-                attacker={attackerMon}
-                attackerMoves={attackerMoves}
-                field={field}
-              />
-            ))}
-            {enemyTeam.members.length === 0 && (
-              <p className="results-hint">No targets — add one in the Enemy Team box →</p>
-            )}
-          </div>
+          </section>
+          <div className="arena-flag arena-flag--foe"><span>ENEMY TEAM</span></div>
+        </main>
+      ) : (
+        <main className="calc-layout">
+          <div className="side-stack">{playerColumn}{playerConditions}</div>
 
-          {/* The rest of the enemy team underneath. */}
-          {enemyTeam.members.length > 2 && (
-            <div className="bench-block">
-              <h2 className="col-title">More targets</h2>
-              <div className="defenders-grid">
-                {enemyTeam.members.slice(2).map((d, i) => {
-                  const idx = i + 2;
-                  return (
-                    <DefenderCard
-                      key={`e-${enemyTeamIdx}-${idx}`}
-                      index={idx}
-                      set={d}
-                      onChange={(next) => updateEnemyMember(idx, next)}
-                      onRemove={() => removeEnemyMember(idx)}
-                      onSwap={swapEnemyMembers}
-                      attacker={attackerMon}
-                      attackerMoves={attackerMoves}
-                      field={field}
-                    />
-                  );
-                })}
+          <section className="center-col">
+            {/* Top line: your attacker vs the two active enemies. */}
+            <div className="battle-row">
+              {attackerBlock}
+              {enemyTeam.members.slice(0, 2).map((d, i) => renderDefender(d, i))}
+              {enemyTeam.members.length === 0 && (
+                <p className="results-hint">No targets — add one in the Enemy Team box →</p>
+              )}
+            </div>
+
+            {/* The rest of the enemy team underneath. */}
+            {enemyTeam.members.length > 2 && (
+              <div className="bench-block">
+                <h2 className="col-title">More targets</h2>
+                <div className="defenders-grid">
+                  {enemyTeam.members.slice(2).map((d, i) => renderDefender(d, i + 2))}
+                </div>
               </div>
-            </div>
-          )}
-        </section>
+            )}
+          </section>
 
-        <div className="side-stack">
-          <TeamColumn
-            title="Enemy Team"
-            variant="foe"
-            teams={enemyTeams}
-            activeIdx={enemyTeamIdx}
-            onSelectTeam={selectEnemyTeam}
-            onAddTeam={addEnemyTeam}
-            onRenameTeam={renameEnemyTeam}
-            onDeleteTeam={deleteEnemyTeam}
-            onImportText={() => setPasteSide('enemy')}
-            onImportPhoto={() => setPhotoSide('enemy')}
-            onAddMember={addEnemyMember}
-            onRemoveMember={removeEnemyMember}
-            onMemberReorder={swapEnemyMembers}
-            addLabel="+ Add target"
-            onHoverMember={onHover('enemy')}
-          />
-          <SideConditions
-            variant="foe"
-            title="Enemy side"
-            screens={fieldState.theirs}
-            onScreens={(c) => setFieldState((s) => ({ ...s, theirs: { ...s.theirs, ...c } }))}
-            helpingHand={fieldState.enemyHelpingHand}
-            onHelpingHand={(v) => setFieldState((s) => ({ ...s, enemyHelpingHand: v }))}
-          />
-        </div>
-      </main>
+          <div className="side-stack">{enemyColumn}{enemyConditions}</div>
+        </main>
+      )}
 
       <footer className="app-footer">
         <BrandLogo className="footer-logo" />
@@ -375,7 +413,7 @@ export default function App() {
           targets={preview.targets}
           field={field}
           reverseField={incomingField}
-          style={previewStyle(preview.rect, preview.side)}
+          style={previewStyle(preview.rect, preview.side, arena)}
           onMouseEnter={keepPreview}
           onMouseLeave={closePreview}
         />
