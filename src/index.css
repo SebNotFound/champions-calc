@@ -19,6 +19,8 @@
   --panel: #111725;
   --panel-2: #161e2e;
   --panel-3: #0c111b;          /* recessed inputs / tracks */
+  --panel-glass: rgba(17, 23, 37, 0.82);   /* faint frosted panels */
+  --panel2-glass: rgba(22, 30, 46, 0.8);
   --border: #232f44;
   --border-bright: #36486a;
   --text: #eaeff8;
@@ -58,6 +60,8 @@
   --panel: #ffffff;
   --panel-2: #f3f6fc;
   --panel-3: #eef2f8;
+  --panel-glass: rgba(255, 255, 255, 0.78);
+  --panel2-glass: rgba(243, 246, 252, 0.76);
   --border: #d3dae8;
   --border-bright: #aab8d0;
   --text: #131822;
