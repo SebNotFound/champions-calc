@@ -6,7 +6,8 @@
  * cards in the centre).
  */
 import { TeamSlots } from './TeamSlots';
-import { spriteUrl, getMega, MAX_TEAM_SIZE } from '../champions';
+import { Sprite } from './widgets';
+import { getMega, MAX_TEAM_SIZE } from '../champions';
 import type { Team } from '../champions';
 
 interface Props {
@@ -72,14 +73,7 @@ export function TeamColumn(props: Props) {
               } : undefined}
               title={reorderable ? 'Drag onto an active target to bring it to the front' : undefined}
             >
-              <img
-                className="member-sprite"
-                src={spriteUrl(m.megaForme ?? m.species)}
-                alt=""
-                loading="lazy"
-                draggable={false}
-                onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-              />
+              <Sprite className="member-sprite" species={m.megaForme ?? m.species} />
               <span className="member-name">{label}</span>
               {team.members.length > 1 && (
                 <button

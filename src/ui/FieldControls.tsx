@@ -22,8 +22,10 @@ export interface Screens {
 export interface FieldState {
   weather?: Weather;
   terrain?: Terrain;
-  /** Doubles support move on your side (×1.5 to your attacks). */
+  /** Helping Hand on your side — ×1.5 to the damage you deal (outgoing). */
   helpingHand: boolean;
+  /** Helping Hand on the enemy side — ×1.5 to the damage you take (incoming). */
+  enemyHelpingHand: boolean;
   /** Screens on your side — reduce the damage you take (incoming). */
   yours: Screens;
   /** Screens on their side — reduce the damage you deal (outgoing). */
@@ -36,6 +38,7 @@ export const defaultFieldState: FieldState = {
   weather: undefined,
   terrain: undefined,
   helpingHand: false,
+  enemyHelpingHand: false,
   yours: noScreens(),
   theirs: noScreens(),
 };
@@ -52,11 +55,12 @@ export function toField(state: FieldState): Field {
   });
 }
 
-/** Field for the INCOMING calc (they attack you): your screens, shared weather/terrain. */
+/** Field for the INCOMING calc (they attack you): their Helping Hand, your screens. */
 export function toIncomingField(state: FieldState): Field {
   return makeField({
     weather: state.weather,
     terrain: state.terrain,
+    attackerSide: { isHelpingHand: state.enemyHelpingHand },
     defenderSide: toSide(state.yours),
   });
 }
@@ -121,7 +125,7 @@ export function SideConditions({
       {onHelpingHand && (
         <label className="cond-row">
           <input type="checkbox" checked={!!helpingHand} onChange={(e) => onHelpingHand(e.target.checked)} />
-          <span>Helping Hand <em>×1.5 to your moves</em></span>
+          <span>Helping Hand</span>
         </label>
       )}
       <label className="cond-row">

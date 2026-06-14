@@ -8,7 +8,7 @@
  * +/- stats, and a Mega Evolution holds no item (the Omni Ring replaces it).
  */
 import { useEffect, useId, useState, type DragEvent } from 'react';
-import { Combobox, TypeBadge, DATALIST } from './widgets';
+import { Combobox, TypeBadge, DATALIST, Sprite } from './widgets';
 import { StatSpreadEditor } from './StatSpreadEditor';
 import { BattleState } from './BattleState';
 import {
@@ -20,7 +20,6 @@ import {
   getSpeciesTypes,
   getMega,
   autofillSet,
-  spriteUrl,
 } from '../champions';
 import type { ChampionsSet, NatureName, StatTable } from '../champions';
 
@@ -120,14 +119,7 @@ export function PokemonEditor({
         onDragEnd={onHeaderDragEnd}
         title={draggable ? 'Drag to swap targets' : undefined}
       >
-        <img
-          className="mon-sprite"
-          src={spriteUrl(set.megaForme ?? set.species)}
-          alt=""
-          loading="lazy"
-          draggable={false}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-        />
+        <Sprite className="mon-sprite" species={set.megaForme ?? set.species} />
         <div className="mon-title-line">
           {title && <span className="mon-role">{title}</span>}
           <div className="mon-types">
