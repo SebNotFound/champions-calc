@@ -8,6 +8,12 @@ and it runs entirely on your machine.
 > **Status: Beta.** It works and the numbers are accurate for the common cases, but the
 > roster and a few mechanics are still being filled in (megas and some niche items in
 > particular). Expect a rough edge here and there.
+>
+> **Heads up on photo import:** the free, on device reading of a Team Preview screenshot is
+> still very clunky and does not work very well yet, mainly for the enemy team. It is okay on
+> a clean, high resolution shot and misses a lot otherwise. For now the text and team report
+> imports are far more reliable, and there is a "More precise" (Claude) option for the hard
+> photos.
 
 ## What it does
 

@@ -251,8 +251,9 @@
 .spread-final { font-size: 13px; font-weight: 700; text-align: right; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 .spread-final.stat-up { color: var(--foe); }
 .spread-final.stat-down { color: var(--ally); }
-/* Stat boosted by a held item (e.g. Choice Scarf) — flag it so the lift is clear. */
-.spread-final.stat-itemed { color: var(--ally); text-decoration: underline dotted; text-underline-offset: 3px; }
+/* Stat changed from its base value by an in-battle boost or a held item (e.g.
+   a +2 from Swords Dance, or Choice Scarf). Flagged so the lift is obvious. */
+.spread-final.stat-mod { color: var(--ally); text-decoration: underline dotted; text-underline-offset: 3px; }
 
 /* ---- Battle state (stat boosts, always shown) ---- */
 .battle-state { font-size: 13px; }
@@ -306,9 +307,12 @@
 .mon-editor-head--drag { cursor: grab; user-select: none; }
 .mon-editor-head--drag:active { cursor: grabbing; }
 .results-hint { font-size: 12px; color: var(--text-dim); font-style: italic; }
-.result-row { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 9px; font-size: 12px; }
+/* Fixed columns so every damage bar is the exact same width across moves and
+   cards (easier to eyeball at a glance). The percent column is a fixed 78px
+   instead of "auto", which is what used to stretch/shrink the bar per row. */
+.result-row { display: grid; grid-template-columns: 86px 1fr 78px; align-items: center; gap: 9px; font-size: 12px; }
 .result-move { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.result-pct { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; white-space: nowrap; letter-spacing: 0.01em; }
+.result-pct { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; white-space: nowrap; letter-spacing: 0.01em; text-align: right; }
 .result-ko { grid-column: 2 / 4; font-size: 11px; color: var(--text-dim); }
 
 /* ---- Attacker column + incoming-damage tabs ---- */

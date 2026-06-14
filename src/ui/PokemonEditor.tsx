@@ -192,6 +192,7 @@ export function PokemonEditor({
         level={set.level}
         onChange={(statPoints) => patch({ statPoints })}
         item={mega ? undefined : set.item}
+        boosts={set.boosts}
       />
 
       {/* Moves are shown for both sides now: the attacker's drive the damage to

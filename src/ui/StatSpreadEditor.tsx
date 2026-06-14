@@ -30,6 +30,17 @@ const ITEM_STAT_MULT: Record<string, { stat: StatKey; mult: number }> = {
   'assault vest': { stat: 'spd', mult: 1.5 },
 };
 
+/**
+ * The classic stat-stage multiplier: +1 is x1.5, +2 is x2, up to +6 = x4, and
+ * the mirror for negatives (-1 is x2/3, down to -6 = x1/4). HP has no stage, so
+ * callers skip it. We floor the result, the same way the game does.
+ */
+function applyBoostStage(stat: number, stage: number): number {
+  if (!stage) return stat;
+  const factor = stage > 0 ? (2 + stage) / 2 : 2 / (2 - stage);
+  return Math.floor(stat * factor);
+}
+
 interface Props {
   baseStats?: StatTable;
   spread: StatSpread;
@@ -38,9 +49,11 @@ interface Props {
   onChange: (next: StatSpread) => void;
   /** Held item — applies its stat multiplier to the shown stat (e.g. Choice Scarf → Spe). */
   item?: string;
+  /** In-battle stat-stage boosts, so the shown stat reflects e.g. a +2 from Swords Dance. */
+  boosts?: Partial<StatTable>;
 }
 
-export function StatSpreadEditor({ baseStats, spread, nature, level, onChange, item }: Props) {
+export function StatSpreadEditor({ baseStats, spread, nature, level, onChange, item, boosts }: Props) {
   const finalStats = baseStats
     ? computeChampionsStats(baseStats, spread, nature, level)
     : undefined;
@@ -63,10 +76,22 @@ export function StatSpreadEditor({ baseStats, spread, nature, level, onChange, i
       {STAT_KEYS.map((stat) => {
         const mult = natureMultiplier(nature, stat);
         const natureClass = mult > 1 ? 'stat-up' : mult < 1 ? 'stat-down' : '';
-        const boosted = itemBoost && itemBoost.stat === stat;
-        const shownStat = finalStats
-          ? (boosted ? Math.floor(finalStats[stat] * itemBoost!.mult) : finalStats[stat])
-          : undefined;
+
+        // Show the *effective* stat: start from the at-level number, apply the
+        // in-battle stage boost (HP has none), then the held-item multiplier.
+        // This matches what the damage calc actually uses, so the two agree.
+        const stage = stat === 'hp' ? 0 : (boosts?.[stat] ?? 0);
+        const itemHere = itemBoost && itemBoost.stat === stat;
+        let shownStat: number | undefined;
+        if (finalStats) {
+          shownStat = applyBoostStage(finalStats[stat], stage);
+          if (itemHere) shownStat = Math.floor(shownStat * itemBoost!.mult);
+        }
+        const modified = stage !== 0 || itemHere;
+        const modTitle = [
+          stage ? `${stage > 0 ? '+' : ''}${stage} stage` : '',
+          itemHere ? `x${itemBoost!.mult} ${item}` : '',
+        ].filter(Boolean).join(', ');
         return (
           <div className="spread-row" key={stat}>
             <label className="spread-label">{STAT_LABELS[stat]}</label>
@@ -88,8 +113,8 @@ export function StatSpreadEditor({ baseStats, spread, nature, level, onChange, i
               className="spread-number"
             />
             <span
-              className={`spread-final ${natureClass}${boosted ? ' stat-itemed' : ''}`}
-              title={boosted ? `×${itemBoost!.mult} from ${item}` : undefined}
+              className={`spread-final ${natureClass}${modified ? ' stat-mod' : ''}`}
+              title={modified ? modTitle : undefined}
             >
               {shownStat ?? '—'}
             </span>
