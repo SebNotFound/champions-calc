@@ -7,6 +7,23 @@
 
 .app { padding: 16px clamp(14px, 2vw, 36px); display: flex; flex-direction: column; gap: 16px; }
 
+/* Faint scan lines drifting across the blueprint grid — sits above the grid
+   background but behind all content (z-index -1), so cards cover it. */
+.bg-fx { position: fixed; inset: 0; pointer-events: none; z-index: -1; overflow: hidden; }
+.bg-fx::before, .bg-fx::after { content: ''; position: absolute; will-change: transform; }
+.bg-fx::before {
+  left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--ally-line) 35%, var(--ally) 50%, var(--ally-line) 65%, transparent);
+  opacity: 0.5; animation: scan-y 13s linear infinite;
+}
+.bg-fx::after {
+  top: 0; bottom: 0; width: 1px;
+  background: linear-gradient(180deg, transparent, var(--foe-line) 40%, var(--foe) 50%, var(--foe-line) 60%, transparent);
+  opacity: 0.42; animation: scan-x 19s linear infinite;
+}
+@keyframes scan-y { 0% { transform: translateY(-6vh); } 100% { transform: translateY(106vh); } }
+@keyframes scan-x { 0% { transform: translateX(-4vw); } 100% { transform: translateX(104vw); } }
+
 @keyframes hud-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes sweep { from { background-position: -140% 0; } to { background-position: 240% 0; } }
 
@@ -42,6 +59,12 @@
   background: repeating-linear-gradient(135deg, transparent 0 9px, var(--grid) 9px 10px);
 }
 .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+/* EXO mark: white "EX" + the neon pokéball as the "O". */
+.brand-exo { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+.brand-ex {
+  font-family: var(--font-logo); font-weight: 800; font-size: 31px; line-height: 1;
+  color: var(--text); letter-spacing: 0.01em;
+}
 .brand-logo {
   width: 52px; height: 38px; flex-shrink: 0;
   fill: none; stroke: var(--ally); stroke-width: 2.4; stroke-linecap: round;
@@ -328,12 +351,18 @@
   animation: hud-rise 0.14s ease both;
 }
 .mp-title {
-  display: flex; align-items: center; gap: 7px; font-size: 13px;
+  display: flex; align-items: center; gap: 8px; font-size: 13px;
   font-family: var(--font-display); letter-spacing: 0.02em;
 }
-.mp-title strong { font-weight: 700; }
-.mp-arrow { color: var(--ally); font-weight: 700; }
-.mp-target { color: var(--text-dim); }
+.mp-name { font-weight: 700; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.mp-name:last-child { text-align: right; }
+.mp-rev {
+  flex-shrink: 0; border: none; background: var(--ally-soft); color: var(--ally);
+  font-family: var(--font-display); font-weight: 700; font-size: 15px;
+  width: 26px; height: 22px; padding: 0; border-radius: 4px; cursor: pointer; line-height: 1;
+  transition: background 0.14s, color 0.14s;
+}
+.mp-rev:hover { background: var(--ally); color: #04141b; box-shadow: 0 0 12px -2px var(--ally); }
 .mp-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .mp-tab {
   display: inline-flex; align-items: center; gap: 5px;

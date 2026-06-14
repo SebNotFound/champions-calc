@@ -5,6 +5,10 @@
  *   - Hover your mon  → that Pokémon's moves against the active enemies, with a
  *     tab per front-line enemy to switch targets.
  *
+ * The "→" in the title is a button: click it to reverse the calc — swap attacker
+ * and defender (damage done ⇄ damage taken), which also swaps to the incoming
+ * field (the right screens / Helping Hand for that direction).
+ *
  * It's anchored next to the hovered row (positioned by the caller) and stays open
  * while the cursor is over it, so the tabs are clickable.
  */
@@ -19,42 +23,60 @@ interface Props {
   /** The attacking Pokémon for this preview (your selected attacker, or the hovered team mon). */
   attacker: Pokemon | null;
   attackerName: string;
-  /** The attacker's move names. */
+  /** The attacker's move names (used in the normal, damage-done direction). */
   moves: string[];
   /** Candidate targets — one tab each (front-line enemies, or the single hovered enemy). */
   targets: ChampionsSet[];
-  field: Field;
+  field: Field;         // attacker → target  (damage done / outgoing)
+  reverseField: Field;  // target → attacker  (damage taken / incoming)
   /** Fixed-position placement computed from the hovered row. */
   style: CSSProperties;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }
 
-export function MatchupPreview({ attacker, attackerName, moves, targets, field, style, onMouseEnter, onMouseLeave }: Props) {
+export function MatchupPreview({ attacker, attackerName, moves, targets, field, reverseField, style, onMouseEnter, onMouseLeave }: Props) {
   const [tab, setTab] = useState(0);
+  const [reversed, setReversed] = useState(false);
   const t = Math.min(tab, Math.max(0, targets.length - 1));
+  const targetSet = targets[t];
 
   const targetMon = useMemo<Pokemon | null>(() => {
-    try { return targets[t] ? buildPokemon(targets[t]) : null; } catch { return null; }
-  }, [targets, t]);
+    try { return targetSet ? buildPokemon(targetSet) : null; } catch { return null; }
+  }, [targetSet]);
+
+  // Direction: normal = attacker → target (damage done); reversed swaps both the
+  // attacker/defender AND the field (so the right screens/Helping Hand apply).
+  const atkMon = reversed ? targetMon : attacker;
+  const defMon = reversed ? attacker : targetMon;
+  const dirField = reversed ? reverseField : field;
+  const dirMoves = reversed ? (targetSet?.moves ?? []) : moves;
+  const leftName = reversed ? (targetSet?.species ?? '') : attackerName;
+  const rightName = reversed ? attackerName : (targetSet?.species ?? '');
 
   const cleanMoves = useMemo(
-    () => Array.from(new Set(moves.map((m) => m.trim()).filter(Boolean))),
-    [moves],
+    () => Array.from(new Set(dirMoves.map((m) => m.trim()).filter(Boolean))),
+    [dirMoves],
   );
 
   const rows = useMemo<MoveResult[]>(() => {
-    if (!attacker || !targetMon) return [];
+    if (!atkMon || !defMon) return [];
     return cleanMoves
-      .map((m) => { try { return { move: m, ...calcOne(attacker, targetMon, m, field) }; } catch { return null; } })
+      .map((m) => { try { return { move: m, ...calcOne(atkMon, defMon, m, dirField) }; } catch { return null; } })
       .filter((r): r is MoveResult => !!r);
-  }, [attacker, targetMon, cleanMoves, field]);
+  }, [atkMon, defMon, cleanMoves, dirField]);
 
   return (
     <div className="matchup-preview" style={style} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} role="dialog">
       <div className="mp-title">
-        <strong>{attackerName}</strong><span className="mp-arrow">→</span>
-        {targets.length === 1 && <span className="mp-target">{targets[0].species}</span>}
+        <span className="mp-name">{leftName}</span>
+        <button
+          className="mp-rev"
+          onClick={() => setReversed((r) => !r)}
+          title="Reverse — swap attacker and defender (damage done ⇄ damage taken)"
+          aria-label="Reverse the matchup"
+        >→</button>
+        <span className="mp-name">{rightName}</span>
       </div>
 
       {targets.length > 1 && (
