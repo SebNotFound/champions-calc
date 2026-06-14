@@ -1,9 +1,49 @@
 /**
  * Small, presentational building blocks shared across the editors.
  */
-import { useMemo } from 'react';
-import { listSpeciesOptions, listMoves, listItems, listAbilities } from '../champions';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { listSpeciesOptions, listMoves, listItems, listAbilities, spriteUrl } from '../champions';
 import type { DamageSummary } from '../champions';
+
+/**
+ * A Pokémon sprite that survives the flaky remote CDN.
+ *
+ * Sprites come from Pokémon Showdown's server, which occasionally drops a
+ * request — and the old `onError → visibility:hidden` hid the <img> *inline and
+ * permanently*, so once a load hiccuped the same reused element stayed blank
+ * until a full page refresh. This instead retries a couple of times with a
+ * cache-buster, and resets cleanly whenever the species changes, so switching
+ * Pokémon always re-attempts rather than inheriting a stuck-hidden state.
+ */
+export function Sprite({ species, className, alt = '' }: { species: string; className?: string; alt?: string }) {
+  const url = useMemo(() => spriteUrl(species), [species]);
+  const [src, setSrc] = useState(url);
+  const [failed, setFailed] = useState(false);
+  const tries = useRef(0);
+
+  useEffect(() => { setSrc(url); setFailed(false); tries.current = 0; }, [url]);
+
+  // No URL or out of retries — keep the layout box, but show nothing (no broken-image icon).
+  if (!url || failed) return <span className={className} aria-hidden />;
+
+  return (
+    <img
+      className={className}
+      src={src}
+      alt={alt}
+      loading="lazy"
+      draggable={false}
+      onError={() => {
+        if (tries.current < 2) {
+          tries.current += 1;
+          setSrc(`${url}${url.includes('?') ? '&' : '?'}r=${tries.current}`);
+        } else {
+          setFailed(true);
+        }
+      }}
+    />
+  );
+}
 
 // Stable <datalist> ids. We render the actual lists ONCE at the app root (see
 // <SharedDatalists/>) and every Combobox just points at them via `list=`. This

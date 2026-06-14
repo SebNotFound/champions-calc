@@ -12,9 +12,9 @@
  */
 import { useMemo, useState } from 'react';
 import type { Field, Pokemon } from '@smogon/calc';
-import { buildPokemon, calcOne, spriteUrl } from '../champions';
+import { buildPokemon, calcOne } from '../champions';
 import type { ChampionsSet } from '../champions';
-import { ResultRow, type MoveResult } from './widgets';
+import { ResultRow, Sprite, type MoveResult } from './widgets';
 
 interface Props {
   /** Your built attacker, or null while its species is mid-edit / invalid. */
@@ -61,7 +61,7 @@ export function IncomingPanel({ attacker, attackerName, enemies, field }: Props)
                 onClick={() => setTab(i)}
                 title={e.species}
               >
-                <img src={spriteUrl(e.megaForme ?? e.species)} alt="" onError={(ev) => { (ev.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }} />
+                <Sprite species={e.megaForme ?? e.species} />
                 <span>{e.species}</span>
               </button>
             ))}

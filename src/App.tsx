@@ -294,9 +294,11 @@ export default function App() {
           />
           <SideConditions
             variant="foe"
-            title="Enemy screens"
+            title="Enemy side"
             screens={fieldState.theirs}
             onScreens={(c) => setFieldState((s) => ({ ...s, theirs: { ...s.theirs, ...c } }))}
+            helpingHand={fieldState.enemyHelpingHand}
+            onHelpingHand={(v) => setFieldState((s) => ({ ...s, enemyHelpingHand: v }))}
           />
         </div>
       </main>
