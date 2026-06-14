@@ -1,115 +1,110 @@
-# Champions Damage Calc
+# Champions Calc
 
-A damage calculator for **Pokémon Champions** (Regulation MA, Lv50 doubles),
-styled after [vgcmulticalc](https://vgcmulticalc.com/): one attacker versus up to
-six targets, with every move scored live. It runs on the open-source
-[`@smogon/calc`](https://github.com/smogon/damage-calc) engine with a
-Champions-specific layer on top.
+A free, in-browser damage calculator for Pokémon Champions. You set up your team and the
+enemy team, and it shows you how much every move does, in both directions, updating live as
+you change spreads, items, abilities, weather and the rest. Nothing to install, no account,
+and it runs entirely on your machine.
+
+> **Status: Beta.** It works and the numbers are accurate for the common cases, but the
+> roster and a few mechanics are still being filled in (megas and some niche items in
+> particular). Expect a rough edge here and there.
 
 ## What it does
 
-- **Multi-target calc.** Your attacker and the two active enemies sit on the top
-  line; the rest of the enemy team is shown below. Every attacker move is scored
-  against every target instantly.
-- **Champions Stat Points.** Sliders for the 66/32 Stat Point system, with live
-  stats and nature colouring (no EV/IV grind).
-- **Filtered inputs.** Abilities and moves are limited to what each species can
-  actually have or learn; natures show their +/− stats.
-- **Mega Evolution.** Pick a mega straight from the species list. All 98
-  Champions megas are included (classic plus the new Legends Z-A ones), and the
-  custom mega abilities are applied (see "Custom abilities" below).
-- **Teams.** A "My Team" box on the left and a mirrored "Enemy Team" box on the
-  right, each with 10 saved slots, sprite chips, drag-to-swap targets, and
-  pokepaste / Showdown import. Everything is saved in your browser.
-- **Most-used autofill.** Pick a Pokémon and its common Champions set (moves,
-  item, ability, nature, spread) fills in, without overwriting edits you make.
-- **Photo import.** Drop a screenshot or phone photo of the Team Preview to
-  pre-fill both teams. The Claude vision engine works today; a free on-device
-  engine is in progress.
-- **Dark mode**, and a layout that scales to full screen.
+* Two teams side by side: yours on the left (blue), the enemy on the right (red).
+* Live damage for every attacker move against each active enemy, with the percent range and
+  the KO chance.
+* Damage in both directions. Under your attacker you also get the incoming damage, so you can
+  see what the enemy does back to you.
+* A hover preview: point at any Pokémon in either list and you get a small card with just
+  that matchup. Click the arrow in the card to flip the calc, so damage done becomes damage
+  taken.
+* Per side battle conditions: weather and terrain up top, then a box under each team for that
+  side's screens and Helping Hand.
+* The full Champions stat editor (Stat Points, nature, IVs assumed perfect) plus held item,
+  ability, status and in battle stat boosts.
+* Saved teams on each side, kept in your browser between visits.
+* Three ways to import a team: paste text, drop a photo, or feed it your in game team report.
 
-## How Champions differs (and how it's handled)
+## How the damage is calculated
 
-- **Stat Points instead of EVs/IVs:** 66 total, max 32 per stat, 1 SP = +1 at
-  Lv50, perfect IVs. Implemented in `src/champions/stats.ts`.
-- **No Terastallization.** See `src/champions/format.ts`.
-- **Mega Evolution is back** (one per team, no held item). Data in
-  `src/champions/data/megas.json`.
-- **Custom mega abilities** that `@smogon/calc` doesn't know are applied in
-  `src/champions/engine.ts`: Dragonize (Normal moves become Dragon with the
-  -ate boost), Mega Sol (always attacks as if under sun), Piercing Drill (hits
-  through Protect). Spicy Spray is a reactive burn, so it needs no per-hit
-  change.
+The actual damage math is done by `@smogon/calc`, the same engine the community calculators
+use, so the formula, type chart, abilities and field effects are battle accurate. Everything
+around it is the Champions specific layer.
 
-The damage formula itself is the standard modern one, so the app runs
-`@smogon/calc` on generation 9 and feeds it Champions-computed stats.
+The stat model is the Champions one, not standard EVs. Each Pokémon gets 66 Stat Points to
+spend, up to 32 in a single stat, with perfect IVs at level 50. The points are folded inside
+the nature multiplier the same way EVs are in the classic formula, which was checked against
+real in game numbers. The details and the worked examples live at the top of
+`src/champions/stats.ts`.
 
-### One number worth checking in-game
+The calculator builds a `@smogon/calc` Pokémon from your set, with the Champions stats baked
+in, then runs each move against each target. A few things the base engine does not know about
+are handled on top:
 
-The Stat Point to final-stat math follows the published rules, but two tiny
-details (whether a Stat Point is added before or after the nature multiplier,
-and floor vs. round) aren't officially documented. They sit behind constants in
-`src/champions/stats.ts` (`SP_APPLIED_AFTER_NATURE`, defaulting to "after" and
-floor). If you can read a known Pokémon's stats in-game, compare and flip the
-flag if needed.
+* Custom Champions abilities, for example Dragonize re-typing Normal moves to Dragon, and
+  Mega Sol forcing Sun.
+* Moves that deal a fraction of the target's current HP (Super Fang and friends), which the
+  engine reports as zero, so they are computed separately.
+* Held items that multiply a stat (Choice Scarf, Choice Band, Choice Specs, Assault Vest) are
+  reflected on the stat itself, so you can actually see Choice Scarf lift your Speed.
 
-## Running it
+Because a screen belongs to one side of the field, the two directions use the right side's
+screens. Your screens cut the damage you take, their screens cut the damage you deal, and the
+same goes for each side's Helping Hand.
+
+## Importing a team
+
+* **Text.** Paste a standard Showdown or pokepaste block and it fills the side for you.
+* **Photo.** Drop a Team Preview screenshot. On the enemy (red) side it reads the sprites on
+  device for free. If it cannot place them confidently, for example a low resolution shot or
+  panels lost in the battle effects, it tells you, and you can crop the six panels yourself or
+  switch to the more precise engine.
+* **Team report.** Feed it the two report screenshots, the Stats tab and the Moves and More
+  tab, and it reads the whole team, spreads and all, for free using on device OCR.
+
+There is also an optional "More precise" engine that uses Claude vision for the hard photos.
+That one needs your own Anthropic API key, which is only ever kept in your browser. It never
+leaves your machine and is never committed.
+
+## Running it locally
+
+You need Node 20 or newer.
 
 ```bash
 npm install
-npm run dev      # dev server at http://localhost:5173
-npm run build    # typecheck + production build
-npm test         # stat-model, engine and import tests
+npm run dev
 ```
 
-Requires Node 20+ (developed on Node 24). No accounts or keys are needed to run
-it. The photo "More precise" option uses your own Anthropic API key, which is
-typed in at runtime and stored only in your browser (never in this repo).
+Then open the address it prints, usually http://localhost:5173. To make a production build,
+run `npm run build` and serve the `dist` folder. Tests are `npm test`.
 
-### Refreshing the bundled data
+## How it is built
 
-Two snapshots are generated by scripts and committed as JSON:
+* React and TypeScript on Vite.
+* `@smogon/calc` for the damage engine, with `@pkmn/dex` and `@pkmn/data` for species, moves
+  and learnsets, and `@pkmn/img` for sprites.
+* `tesseract.js` for the free on device OCR, `jpeg-js` for decoding screenshots.
+* The look is a custom battle HUD theme. The two sides drive the palette: your side is cyan,
+  the enemy side is rose, over a dark grid. The type is Chakra Petch for the technical bits
+  and Hanken Grotesk for the body text. There is a light theme too, behind the toggle in the
+  header.
 
-```bash
-node scripts/fetch-usage.mjs   # most-used sets  -> src/champions/data/usage.json
-node scripts/fetch-megas.mjs   # mega formes     -> src/champions/data/megas.json
-```
+The code is commented the way a person would explain it to another person: the why behind a
+choice, the tricky cases, and the reasoning, rather than restating what the line already says.
+The file headers are a good place to start if you want to follow a part.
 
-Re-run them to update against the latest Champions metagame / data.
+## Known limits
 
-## Project layout
-
-```
-src/
-  champions/          calculator core (no React)
-    stats.ts          Stat Points model (the Champions-specific math)
-    engine.ts         bridge to @smogon/calc (stat injection, custom abilities)
-    format.ts         Reg MA constants (Lv50 doubles, Tera off, one mega)
-    meta.ts           @pkmn dex: per-species abilities, learnsets, sprites
-    usage.ts          most-used set lookup (munchstats snapshot)
-    showdown.ts       pokepaste / Showdown import (EV vs SP detection)
-    teams.ts          saved teams + localStorage persistence
-    types.ts          shared domain types
-    data/             megas.json, usage.json, roster, mega helpers
-    *.test.ts         Vitest tests
-  recognition/        Team Preview photo import (Claude engine + local stub)
-  ui/                 React components (team boxes, editors, dialogs)
-  App.tsx             the multi-calc view
-scripts/              offline data scrapers
-```
-
-## Status
-
-- Calculator core, multi-target UI, Stat Points: done.
-- Teams (save slots, import, autofill, sprites, drag-to-swap): done.
-- Megas including Z-A and custom abilities: done.
-- Dark mode and full-screen layout: done.
-- Photo recognition: Claude vision engine done; free on-device engine in
-  progress (the enemy side shows sprites only, so it needs sprite matching).
-- Mobile PWA: planned.
+* Megas and the full roster are a work in progress.
+* On device photo reading is reliable on a clean Team Preview. Very low resolution shots, or
+  ones where fire and lasers cover the sprites, are hard, and those fall back to a manual crop
+  or the Claude engine.
+* The blue (your own) side of a Team Preview is harder to read on device than the red side, so
+  for your own team the text and report imports are the surest.
 
 ## Credits
 
-Damage mechanics by [`@smogon/calc`](https://github.com/smogon/damage-calc).
-Mega and usage data derived from the community Champions calculators. Not
-affiliated with Nintendo or The Pokémon Company.
+Damage engine by the Smogon community (`@smogon/calc`). Pokémon data and sprites via the
+`@pkmn` projects. Pokémon is a trademark of Nintendo, Game Freak and The Pokémon Company.
+This is a fan made tool with no affiliation.
