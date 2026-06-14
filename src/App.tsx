@@ -197,7 +197,6 @@ export default function App() {
 
   return (
     <div className="app">
-      <div className="bg-fx" aria-hidden="true" />
       <SharedDatalists />
 
       <header className="app-header">
