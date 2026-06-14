@@ -7,37 +7,6 @@
 
 .app { padding: 16px clamp(14px, 2vw, 36px); display: flex; flex-direction: column; gap: 16px; }
 
-/* Lightning pulses running across the grid — bright, with a glow, on top of the
-   content (z-index 2) so they're clearly visible. Each sweeps quickly, then
-   rests before the next. pointer-events:none so they never block clicks. */
-.bg-fx { position: fixed; inset: 0; pointer-events: none; z-index: 2; overflow: hidden; }
-.bg-fx::before, .bg-fx::after { content: ''; position: absolute; will-change: transform, opacity; opacity: 0; }
-.bg-fx::before {
-  left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--ally) 38%, #ffffff 50%, var(--ally) 62%, transparent);
-  filter: drop-shadow(0 0 9px var(--ally)) drop-shadow(0 0 3px #fff);
-  animation: scan-y 6s ease-in-out infinite;
-}
-.bg-fx::after {
-  top: 0; bottom: 0; width: 2px;
-  background: linear-gradient(180deg, transparent, var(--foe) 38%, #ffffff 50%, var(--foe) 62%, transparent);
-  filter: drop-shadow(0 0 9px var(--foe)) drop-shadow(0 0 3px #fff);
-  animation: scan-x 7.5s ease-in-out infinite 2.5s;
-}
-/* Sweep across in the first ~25% of the cycle, then rest off-screen. */
-@keyframes scan-y {
-  0%   { transform: translateY(-6vh);  opacity: 0; }
-  3%   { opacity: 0.85; }
-  25%  { transform: translateY(106vh); opacity: 0.85; }
-  27%, 100% { transform: translateY(106vh); opacity: 0; }
-}
-@keyframes scan-x {
-  0%   { transform: translateX(-4vw);  opacity: 0; }
-  3%   { opacity: 0.8; }
-  22%  { transform: translateX(104vw); opacity: 0.8; }
-  24%, 100% { transform: translateX(104vw); opacity: 0; }
-}
-
 @keyframes hud-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes header-flow { from { background-position: 0 0; } to { background-position: 520px 0; } }
 
