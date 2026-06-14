@@ -195,11 +195,15 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className="bg-fx" aria-hidden="true" />
       <SharedDatalists />
 
       <header className="app-header">
         <div className="brand">
-          <BrandLogo />
+          <div className="brand-exo" title="EXO">
+            <span className="brand-ex">EX</span>
+            <BrandLogo />
+          </div>
           <div className="brand-text">
             <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
             <span className="reg-badge">
@@ -356,11 +360,13 @@ export default function App() {
 
       {preview && preview.targets.length > 0 && (
         <MatchupPreview
+          key={`${preview.side}-${hover?.index ?? 0}`}
           attacker={preview.attacker}
           attackerName={preview.attackerName}
           moves={preview.moves}
           targets={preview.targets}
           field={field}
+          reverseField={incomingField}
           style={previewStyle(preview.rect, preview.side)}
           onMouseEnter={keepPreview}
           onMouseLeave={closePreview}

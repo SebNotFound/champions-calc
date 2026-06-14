@@ -11,6 +11,7 @@
 :root {
   --font-display: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
   --font-body: 'Hanken Grotesk', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --font-logo: 'Tektur', 'Chakra Petch', sans-serif; /* the EXO brand mark */
 
   /* Dark "battlefield" is the default look. */
   --bg: #080b12;
