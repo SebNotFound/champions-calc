@@ -30,6 +30,8 @@ interface Props {
    *  drag format with the defender cards. */
   onMemberReorder?: (from: number, to: number) => void;
   addLabel?: string;
+  /** Allegiance colour: 'ally' (your cyan side) or 'foe' (the enemy's rose side). */
+  variant?: 'ally' | 'foe';
 }
 
 export function TeamColumn(props: Props) {
@@ -38,7 +40,7 @@ export function TeamColumn(props: Props) {
   const reorderable = !!props.onMemberReorder;
 
   return (
-    <div className="team-col">
+    <div className={`team-col${props.variant ? ` team-col--${props.variant}` : ''}`}>
       <h2 className="col-title">{props.title}</h2>
       <TeamSlots
         teams={props.teams}

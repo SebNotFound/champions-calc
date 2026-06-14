@@ -1,85 +1,154 @@
-/* Global theme + resets for the Champions calculator. Light, compact and
-   card-based, echoing the clean VGC-multicalc look. */
-:root {
-  --bg: #f4f6fa;
-  --panel: #ffffff;
-  --panel-2: #f8fafc;
-  --border: #dfe3ea;
-  --text: #1f2733;
-  --text-dim: #6b7686;
-  --accent: #2f6fed;
-  --accent-dim: #e7efff;
-  --danger: #b3253a;
-  --code-bg: #eef1f6;
-  --track: #e9edf3;
-  --radius: 10px;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 1px 3px rgba(16, 24, 40, 0.08);
+/* ============================================================================
+   "STADIUM" — global theme for the Champions damage calculator.
 
-  font: 14px/1.45 system-ui, 'Segoe UI', Roboto, sans-serif;
+   A competitive battle HUD. The core of a Pokémon battle is your side vs theirs,
+   so the palette is built on two allegiances — ALLY (azure-cyan) and FOE (hot
+   rose) — over a dark graphite battlefield with a faint blueprint grid. Sharp
+   corners, hairline borders, technical type. Dark is the default; a daylight
+   theme mirrors it for bright rooms.
+   ========================================================================== */
+
+:root {
+  --font-display: 'Chakra Petch', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Hanken Grotesk', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  /* Dark "battlefield" is the default look. */
+  --bg: #080b12;
+  --bg-2: #0b0f18;
+  --panel: #111725;
+  --panel-2: #161e2e;
+  --panel-3: #0c111b;          /* recessed inputs / tracks */
+  --border: #232f44;
+  --border-bright: #36486a;
+  --text: #eaeff8;
+  --text-dim: #8493ab;
+  --text-faint: #5b6982;
+
+  --ally: #25d2ff;             /* your side + primary actions */
+  --ally-soft: rgba(37, 210, 255, 0.14);
+  --ally-line: rgba(37, 210, 255, 0.4);
+  --foe: #ff4d6d;              /* the enemy side */
+  --foe-soft: rgba(255, 77, 109, 0.14);
+  --foe-line: rgba(255, 77, 109, 0.42);
+
+  /* Aliases so existing component rules keep working. */
+  --accent: var(--ally);
+  --accent-dim: var(--ally-soft);
+  --danger: var(--foe);
+  --code-bg: #0c111b;
+  --track: #0c111b;
+
+  --grid: rgba(120, 160, 220, 0.05);   /* blueprint hairlines */
+  --radius: 4px;
+  --shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 8px 24px -14px rgba(0, 0, 0, 0.8);
+  --glow-ally: 0 0 0 1px var(--ally-line), 0 0 18px -4px rgba(37, 210, 255, 0.55);
+
+  font: 400 14px/1.5 var(--font-body);
   color: var(--text);
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
-/* Dark theme — toggled via data-theme="dark" on <html>. */
-:root[data-theme="dark"] {
-  --bg: #0f1420;
-  --panel: #1a2231;
-  --panel-2: #232d3f;
-  --border: #2f3a4e;
-  --text: #e6eaf2;
-  --text-dim: #97a3b6;
-  --accent: #5b8cff;
-  --accent-dim: #1d2b48;
-  --danger: #ff6b81;
-  --code-bg: #232d3f;
-  --track: #2a3447;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+/* Daylight theme — same identity, bright surfaces. */
+:root[data-theme='light'] {
+  --bg: #e9edf5;
+  --bg-2: #eef2f8;
+  --panel: #ffffff;
+  --panel-2: #f3f6fc;
+  --panel-3: #eef2f8;
+  --border: #d3dae8;
+  --border-bright: #aab8d0;
+  --text: #131822;
+  --text-dim: #57647a;
+  --text-faint: #8a96a8;
+
+  --ally: #0596c4;
+  --ally-soft: rgba(5, 150, 196, 0.12);
+  --ally-line: rgba(5, 150, 196, 0.45);
+  --foe: #e0334f;
+  --foe-soft: rgba(224, 51, 79, 0.1);
+  --foe-line: rgba(224, 51, 79, 0.4);
+  --code-bg: #eef2f8;
+  --track: #e6ebf3;
+  --grid: rgba(40, 70, 120, 0.05);
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 6px 16px -10px rgba(16, 24, 40, 0.25);
 }
 
 * { box-sizing: border-box; }
 
 body { margin: 0; }
 
-/* Full-width app (override the Vite starter's fixed, centred root). */
+/* The battlefield: a faint blueprint grid over the base, with two distant glows
+   hinting the ally (left) and foe (right) corners. */
 #root {
   width: 100%;
   min-height: 100svh;
   text-align: left;
+  background:
+    radial-gradient(60% 50% at 0% 0%, var(--ally-soft), transparent 70%),
+    radial-gradient(60% 50% at 100% 0%, var(--foe-soft), transparent 70%),
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% 28px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 28px 100%,
+    var(--bg);
 }
 
-h1, h2 { margin: 0; font-weight: 600; color: var(--text); }
+h1, h2 { margin: 0; font-weight: 600; color: var(--text); font-family: var(--font-display); }
 
+/* ---- Controls ---- */
 button {
-  font: inherit;
+  font: 600 13px/1 var(--font-body);
   cursor: pointer;
   border: 1px solid var(--border);
-  background: var(--panel);
+  background: var(--panel-2);
   color: var(--text);
-  border-radius: 8px;
-  padding: 6px 12px;
-  transition: background 0.15s, border-color 0.15s;
+  border-radius: var(--radius);
+  padding: 7px 12px;
+  letter-spacing: 0.01em;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
-button:hover:not(:disabled) { background: var(--panel-2); border-color: #c7ccd6; }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
-button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-button.primary:hover:not(:disabled) { background: #2660d8; }
+button:hover:not(:disabled) { border-color: var(--border-bright); background: var(--panel); }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button.primary {
+  background: var(--ally); border-color: var(--ally);
+  color: #04141b; font-weight: 700;
+  box-shadow: 0 0 18px -6px var(--ally);
+}
+button.primary:hover:not(:disabled) { filter: brightness(1.08); background: var(--ally); }
 
-input, select {
+input, select, textarea {
   font: inherit;
   color: var(--text);
-  background: var(--panel);
+  background: var(--panel-3);
   border: 1px solid var(--border);
-  border-radius: 7px;
-  padding: 5px 8px;
+  border-radius: var(--radius);
+  padding: 6px 9px;
   width: 100%;
 }
-input:focus, select:focus { outline: 2px solid var(--accent-dim); border-color: var(--accent); }
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--ally);
+  box-shadow: 0 0 0 3px var(--ally-soft);
+}
+::placeholder { color: var(--text-faint); }
+::selection { background: var(--ally); color: #04141b; }
 
 code {
-  font-family: ui-monospace, Consolas, monospace;
+  font-family: ui-monospace, 'Cascadia Code', Consolas, monospace;
   background: var(--code-bg);
-  border-radius: 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
   padding: 1px 5px;
-  font-size: 0.92em;
+  font-size: 0.9em;
+  color: var(--ally);
+}
+
+/* Thin custom scrollbars to match the chrome. */
+* { scrollbar-width: thin; scrollbar-color: var(--border-bright) transparent; }
+*::-webkit-scrollbar { width: 9px; height: 9px; }
+*::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 999px; border: 2px solid transparent; background-clip: content-box; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
 }
