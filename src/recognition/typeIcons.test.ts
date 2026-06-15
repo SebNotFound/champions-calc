@@ -1,7 +1,23 @@
 import { describe, it, expect } from 'vitest';
 import { speciesTypeBuckets, typeMatchBonus, TYPE_MATCH_BONUS, type ColorBucket } from './typeIcons';
+import { acceptsAutoFill } from './localRecognizer';
 
 const set = (...b: ColorBucket[]) => new Set(b);
+
+describe('acceptsAutoFill', () => {
+  it('uses the full bar for a plain match', () => {
+    expect(acceptsAutoFill(0.71, false)).toBe(true);
+    expect(acceptsAutoFill(0.69, false)).toBe(false);
+  });
+
+  it('relaxes the bar only for a type-consistent match', () => {
+    // 0.67: below the plain bar, above the type-consistent bar.
+    expect(acceptsAutoFill(0.67, false)).toBe(false);
+    expect(acceptsAutoFill(0.67, true)).toBe(true);
+    // A type-backed read that is still too weak stays a best guess.
+    expect(acceptsAutoFill(0.6, true)).toBe(false);
+  });
+});
 
 describe('speciesTypeBuckets', () => {
   it('maps each type to its colour options and drops unreadable types', () => {

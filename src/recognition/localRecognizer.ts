@@ -72,10 +72,35 @@ const COLOR_WEIGHT = 0.45;
 const MATCH_THRESHOLD = 0.7;
 
 /**
+ * A slightly lower bar to auto-fill, used only when the match is type-consistent
+ * (its every readable type is corroborated by the panel's icons; see typeIcons.ts).
+ * The icons are independent evidence that survives the occlusion which drags the
+ * fingerprint score down, so a type-backed 0.66 is about as trustworthy as a
+ * fingerprint-only 0.70. Kept just 0.04 below the main bar on purpose: on the
+ * occluded sample it promotes the correct type-backed reads (Charizard 0.68,
+ * Gardevoir 0.67) to auto-fill while leaving a same-typed lookalike (0.66) and a
+ * true shape tie (0.59) as best guesses, and it changes nothing on a clean shot
+ * where the right answer already clears 0.80. It is still possible for a strongly
+ * type-consistent lookalike to fill on a badly occluded shot, so this trades a
+ * little of "ask, don't guess" for fewer slots left empty. Verify a low one.
+ */
+const TYPE_CONSISTENT_THRESHOLD = 0.66;
+
+/**
  * Below {@link MATCH_THRESHOLD} but still worth showing as a "best guess" hint
  * (rather than auto-filling). Below this we treat the slot as unrecognised.
  */
 const MENTION_THRESHOLD = 0.45;
+
+/**
+ * Whether a scored match is confident enough to auto-fill rather than be offered
+ * as a best guess. A plain match needs {@link MATCH_THRESHOLD}; a type-consistent
+ * one (corroborated by the panel's type icons) only needs the lower
+ * {@link TYPE_CONSISTENT_THRESHOLD}.
+ */
+export function acceptsAutoFill(sim: number, typeConsistent: boolean): boolean {
+  return sim >= MATCH_THRESHOLD || (typeConsistent && sim >= TYPE_CONSISTENT_THRESHOLD);
+}
 
 /**
  * Fraction of each panel's width taken as the sprite window. Wide enough to fit
@@ -123,7 +148,7 @@ async function decodeToImg(image: Blob): Promise<Img> {
  * fire, low-res). `iconBuckets` is the set of colours read from this panel's
  * icons; pass an empty set to score on the fingerprint alone.
  */
-function bestMatch(rgba: Uint8ClampedArray, w: number, h: number, iconBuckets: Set<ColorBucket>): { species: string; sim: number } {
+function bestMatch(rgba: Uint8ClampedArray, w: number, h: number, iconBuckets: Set<ColorBucket>): { species: string; sim: number; typeConsistent: boolean } {
   const flipped = flipH(rgba, w, h);
   const v = normalizeThumb(spriteThumbnail(rgba, w, h));
   const vf = normalizeThumb(spriteThumbnail(flipped, w, h));
@@ -131,13 +156,15 @@ function bestMatch(rgba: Uint8ClampedArray, w: number, h: number, iconBuckets: S
   const cvf = normalizeThumb(colorThumbnail(flipped, w, h));
   let bestSpecies = '';
   let bestSim = -1;
+  let bestTypeConsistent = false;
   for (const r of references()) {
     const shape = Math.max(similarity(v, r.v), similarity(vf, r.v));
     const color = Math.max(similarity(cv, r.cv), similarity(cvf, r.cv));
-    const sim = (1 - COLOR_WEIGHT) * shape + COLOR_WEIGHT * color + typeMatchBonus(r.buckets, iconBuckets);
-    if (sim > bestSim) { bestSim = sim; bestSpecies = r.species; }
+    const bonus = typeMatchBonus(r.buckets, iconBuckets);
+    const sim = (1 - COLOR_WEIGHT) * shape + COLOR_WEIGHT * color + bonus;
+    if (sim > bestSim) { bestSim = sim; bestSpecies = r.species; bestTypeConsistent = bonus > 0; }
   }
-  return { species: bestSpecies, sim: bestSim };
+  return { species: bestSpecies, sim: bestSim, typeConsistent: bestTypeConsistent };
 }
 
 /**
@@ -162,7 +189,7 @@ function matchEnemyColumn(img: Img, x0: number, x1: number, slots: Array<[number
     // Read this panel's type icons (top-right, full panel width) as a prior; they
     // survive fire/low-res that the sprite itself does not.
     const iconBuckets = detectIconBuckets(img, x0, x1, y0, y1);
-    const { species, sim } = bestMatch(rgba, spriteW, ch, iconBuckets);
+    const { species, sim, typeConsistent } = bestMatch(rgba, spriteW, ch, iconBuckets);
     const mon: DetectedPokemon = {
       side: 'enemy',
       species: resolveSpeciesName(species),
@@ -171,7 +198,7 @@ function matchEnemyColumn(img: Img, x0: number, x1: number, slots: Array<[number
       confidence: Math.min(1, sim),
       box: { x: x0, y: y0, w: spriteW, h: ch },
     };
-    if (sim >= MATCH_THRESHOLD) enemy.push(mon);
+    if (acceptsAutoFill(sim, typeConsistent)) enemy.push(mon);
     else if (sim >= MENTION_THRESHOLD) uncertain.push(mon); // shaky — offer, don't fill
   }
   return { enemy, uncertain };
