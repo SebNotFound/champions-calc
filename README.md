@@ -132,6 +132,28 @@ The file headers are a good place to start if you want to follow a part.
 * The blue (your own) side of a Team Preview is harder to read on device than the red side, so
   for your own team the text and report imports are the surest.
 
+## Contributing
+
+Pull requests are welcome. The flow is the usual GitHub one: fork the repo, make your change on
+a branch, and open a pull request against `main`. I review and merge from there, so nothing
+lands without a look first. If you are planning something big, open an issue first so we can
+talk it through before you put in the time. There is a short [CONTRIBUTING.md](CONTRIBUTING.md)
+with the setup and a few good first things to pick up.
+
+## License
+
+Copyright (C) 2026 SebNotFound.
+
+This project is free software under the GNU Affero General Public License, version 3 or later
+(AGPL-3.0-or-later). The full text is in [LICENSE](LICENSE). In plain words: you are free to
+use, study, change and share it, but if you run a modified version as a public website you have
+to make your source available under the same license too. That is the part that keeps the
+calculator open, so a fork cannot quietly turn into a closed copy.
+
+The code is open, but the name, the "EXO" branding, the logo and the "SebNotFound" identity are
+not part of that license. Please rename and rebrand any fork you publish so it is not mistaken
+for the original.
+
 ## Credits
 
 Damage engine by the Smogon community (`@smogon/calc`). Pokémon data and sprites via the
