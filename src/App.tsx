@@ -371,6 +371,24 @@ export default function App() {
            left, the enemy's two on the right, each a wide card with the damage it
            takes and a tab to pick which of the opposing two is hitting it. */
         <>
+          {/* Phones in portrait can't fit the wide 2v2 board, so we gate it
+              behind a turn-sideways prompt. Hidden by CSS on desktop and in
+              landscape; when shown, the bar and ground below are hidden too. */}
+          <div className="rotate-gate" role="status">
+            <div className="rotate-gate-card">
+              <svg className="rotate-gate-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="2" width="14" height="20" rx="2.5" />
+                <path className="rotate-gate-arrow" d="M2.5 13.5a9 9 0 0 0 8 7" fill="none" />
+              </svg>
+              <p className="rotate-gate-title">Turn your device sideways</p>
+              <p className="rotate-gate-text">
+                Arena is a wide 2v2 board, so it needs a landscape screen. Rotate your phone to play
+                it here, or switch to Classic mode.
+              </p>
+              <button className="reset-btn" onClick={() => setArena(false)}>Use Classic mode instead</button>
+            </div>
+          </div>
+
           <div className="arena-bar">
             <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
             {playerColumn}

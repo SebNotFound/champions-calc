@@ -661,3 +661,30 @@
   .arena-vs { align-self: center; padding: 4px 0; }
   .arena-vs::before { inset: auto 8px; left: 8px; right: 8px; top: 50%; bottom: auto; width: auto; height: 2px; background: linear-gradient(90deg, transparent, var(--ally), var(--foe), transparent); }
 }
+
+/* ---- Arena on phones: landscape only ----
+   The wide 2v2 board can't fit a portrait phone, so in portrait we hide it and
+   show a turn-sideways prompt instead. In landscape the board renders (the rule
+   above stacks the columns so a single card fits the screen width and the page
+   scrolls). Scoped to small portrait screens, so desktop and Classic mode never
+   see any of this. */
+.rotate-gate { display: none; }
+@media (max-width: 820px) and (orientation: portrait) {
+  .app--arena .arena-bar,
+  .app--arena .arena-ground { display: none; }
+  .app--arena .rotate-gate { display: flex; justify-content: center; padding: 7vh 4px; }
+  /* The header is no longer fused onto the (now hidden) bar, so restore its edges. */
+  .app--arena .app-header { border-bottom: 1px solid var(--border); border-bottom-left-radius: var(--radius); border-bottom-right-radius: var(--radius); margin-bottom: 0; }
+}
+.rotate-gate-card {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  max-width: 320px; text-align: center; padding: 28px 22px;
+  background: var(--panel-glass); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.rotate-gate-icon { width: 54px; height: 54px; stroke: var(--ally); fill: none; stroke-width: 1.6; stroke-linejoin: round; }
+.rotate-gate-icon rect { fill: var(--panel-3); }
+.rotate-gate-arrow { stroke: var(--ally); stroke-linecap: round; }
+.rotate-gate-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); margin: 0; }
+.rotate-gate-text { font-size: 13px; line-height: 1.5; color: var(--text-dim); margin: 0; }
+.rotate-gate-card .reset-btn { margin-top: 4px; }
