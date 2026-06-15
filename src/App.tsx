@@ -327,7 +327,7 @@ export default function App() {
   );
 
   return (
-    <div className="app">
+    <div className={`app${arena ? ' app--arena' : ''}`}>
       <SharedDatalists />
 
       <header className="app-header">

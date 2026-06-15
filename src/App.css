@@ -5,7 +5,9 @@
    type, corner ticks, and restrained motion.
    ========================================================================== */
 
-.app { padding: 16px clamp(14px, 2vw, 36px); display: flex; flex-direction: column; gap: 16px; }
+/* Slim side padding so the calc fills the page width instead of floating in a
+   wide margin. */
+.app { padding: 14px clamp(10px, 1vw, 16px); display: flex; flex-direction: column; gap: 16px; }
 
 @keyframes hud-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 @keyframes header-flow { from { background-position: 0 0; } to { background-position: 520px 0; } }
@@ -103,7 +105,9 @@
   border-left: 3px solid var(--border-bright);
 }
 .side-cond--ally { border-left-color: var(--ally); }
-.side-cond--foe { border-left-color: var(--foe); }
+/* The enemy accent sits on the RIGHT edge instead, so the two boxes mirror:
+   ally line on the far left, foe line on the far right. */
+.side-cond--foe { border-left: 1px solid var(--border); border-right: 3px solid var(--foe); }
 .side-cond-head {
   font-family: var(--font-display); font-size: 11px; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.14em; color: var(--text);
@@ -533,6 +537,18 @@
   -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
   border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
   animation: hud-rise 0.4s ease both;
+}
+/* Fuse the header and the team bar into one stacked panel split by a single
+   line, instead of two separate panels floating apart. The header's bottom is
+   flattened and pulled flush onto the bar (cancelling the column gap), and the
+   bar's top border becomes the divider. */
+.app--arena .app-header {
+  border-bottom: none;
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  margin-bottom: -16px;
+}
+.app--arena .arena-bar {
+  border-top-left-radius: 0; border-top-right-radius: 0;
 }
 .arena-bar > .team-col { flex: 2 1 0; min-width: 0; }
 .arena-bar > .side-cond { flex: 0 0 auto; align-self: stretch; }

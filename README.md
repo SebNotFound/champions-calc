@@ -15,6 +15,16 @@ and it runs entirely on your machine.
 > imports are far more reliable, and there is a "More precise" (Claude) option for the hard
 > photos.
 
+## A look at it
+
+The classic side by side calculator, your team on the left and the enemy on the right:
+
+![The classic calculator with both teams and live damage in both directions](docs/screenshots/classic.png)
+
+Battle Arena, a 2v2 board that runs the very same maths in a battlefield layout:
+
+![Battle Arena: your two actives on the left, the enemy's two on the right, with a VS down the middle](docs/screenshots/battle-arena.png)
+
 ## What it does
 
 * Two teams side by side: yours on the left (blue), the enemy on the right (red).
@@ -31,6 +41,18 @@ and it runs entirely on your machine.
   ability, status and in battle stat boosts.
 * Saved teams on each side, kept in your browser between visits.
 * Three ways to import a team: paste text, drop a photo, or feed it your in game team report.
+
+## Battle Arena
+
+There is a second layout you can flip to with the Arena toggle in the header, built for
+doubles. It puts your two active Pokémon on the left and the enemy's two on the right, with a
+VS down the middle, so it reads like a real 2v2 board. Across the top is one management bar
+that holds both teams' rosters and each side's battle conditions, so the whole setup lives in
+one place. Each card is the full editor, and its damage panel faces the centre: it shows what
+that Pokémon takes from either of the two across from it, and a small tab picks which attacker.
+
+It is not a separate calculator. It is the exact same engine and the same set editors as the
+classic view, only dealt out as a battlefield, so the numbers always match between the two.
 
 ## How the damage is calculated
 
