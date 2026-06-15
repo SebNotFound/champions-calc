@@ -1,8 +1,9 @@
 import type { DetectedPokemon, RecognitionResult, TeamPreviewRecognizer, CropRect } from './types';
-import { resolveSpeciesName } from '../champions/engine';
+import { resolveSpeciesName, getSpeciesTypes } from '../champions/engine';
 import type { Side } from '../champions';
 import { spriteThumbnail, colorThumbnail, normalizeThumb, similarity, decodeThumb } from '../champions/phash';
 import { detectColumn, detectSlots, cropRGBA, removeEnemyBackground, keepLargestComponent, flipH, isPanelRed, type Img } from './segment';
+import { detectIconBuckets, speciesTypeBuckets, typeMatchBonus, type ColorBucket } from './typeIcons';
 import rawHashes from '../champions/data/sprite-hashes.json';
 
 /**
@@ -21,6 +22,9 @@ import rawHashes from '../champions/data/sprite-hashes.json';
  *   4. Match each sprite (and its mirror) against the reference set by cosine
  *      similarity, blending a grayscale "shape" score with a coarse colour score
  *      so similarly-shaped mons of different colours don't get confused (phash.ts).
+ *      The panel's type icons add a small consistency bonus (typeIcons.ts): they
+ *      survive the fire/low-res that ruins the sprite, so they break near-ties and
+ *      rescue a read the fingerprint alone can't make.
  *   5. Keep matches above a confidence threshold; weaker ones become "best
  *      guesses" so a shaky guess never silently fills the wrong Pokémon.
  *
@@ -32,6 +36,7 @@ interface RefVec {
   species: string;
   v: Float32Array;  // grayscale shape fingerprint
   cv: Float32Array; // coarse colour fingerprint
+  buckets: ColorBucket[][]; // type-icon colour groups, one per readable type
 }
 
 /** Reference thumbnails, decoded + normalized once on first use. */
@@ -42,6 +47,7 @@ function references(): RefVec[] {
       species: r.species,
       v: normalizeThumb(decodeThumb(r.t)),
       cv: normalizeThumb(decodeThumb(r.c)),
+      buckets: speciesTypeBuckets(getSpeciesTypes(r.species)),
     }));
   }
   return refVecs;
@@ -111,9 +117,13 @@ async function decodeToImg(image: Blob): Promise<Img> {
  * Best reference match for one cropped, background-removed sprite. Each sprite is
  * compared both ways (it and its mirror, since enemy sprites face the player) on
  * a grayscale shape fingerprint and a coarse colour fingerprint; the two scores
- * are blended by {@link COLOR_WEIGHT}.
+ * are blended by {@link COLOR_WEIGHT}. A candidate whose typing matches the
+ * panel's type icons gets a small bonus on top (see typeIcons.ts), which breaks
+ * near-ties and rescues sprites the fingerprint alone can't read (occluded by
+ * fire, low-res). `iconBuckets` is the set of colours read from this panel's
+ * icons; pass an empty set to score on the fingerprint alone.
  */
-function bestMatch(rgba: Uint8ClampedArray, w: number, h: number): { species: string; sim: number } {
+function bestMatch(rgba: Uint8ClampedArray, w: number, h: number, iconBuckets: Set<ColorBucket>): { species: string; sim: number } {
   const flipped = flipH(rgba, w, h);
   const v = normalizeThumb(spriteThumbnail(rgba, w, h));
   const vf = normalizeThumb(spriteThumbnail(flipped, w, h));
@@ -124,7 +134,7 @@ function bestMatch(rgba: Uint8ClampedArray, w: number, h: number): { species: st
   for (const r of references()) {
     const shape = Math.max(similarity(v, r.v), similarity(vf, r.v));
     const color = Math.max(similarity(cv, r.cv), similarity(cvf, r.cv));
-    const sim = (1 - COLOR_WEIGHT) * shape + COLOR_WEIGHT * color;
+    const sim = (1 - COLOR_WEIGHT) * shape + COLOR_WEIGHT * color + typeMatchBonus(r.buckets, iconBuckets);
     if (sim > bestSim) { bestSim = sim; bestSpecies = r.species; }
   }
   return { species: bestSpecies, sim: bestSim };
@@ -149,11 +159,16 @@ function matchEnemyColumn(img: Img, x0: number, x1: number, slots: Array<[number
       removeEnemyBackground(cropRGBA(img, x0, y0, spriteW, ch), spriteW, ch),
       spriteW, ch,
     );
-    const { species, sim } = bestMatch(rgba, spriteW, ch);
+    // Read this panel's type icons (top-right, full panel width) as a prior; they
+    // survive fire/low-res that the sprite itself does not.
+    const iconBuckets = detectIconBuckets(img, x0, x1, y0, y1);
+    const { species, sim } = bestMatch(rgba, spriteW, ch, iconBuckets);
     const mon: DetectedPokemon = {
       side: 'enemy',
       species: resolveSpeciesName(species),
-      confidence: sim,
+      // The type-icon bonus can lift sim past 1.0; clamp so the shown confidence
+      // never reads as more than 100%.
+      confidence: Math.min(1, sim),
       box: { x: x0, y: y0, w: spriteW, h: ch },
     };
     if (sim >= MATCH_THRESHOLD) enemy.push(mon);
