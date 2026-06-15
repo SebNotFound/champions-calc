@@ -1,9 +1,14 @@
 # Champions Calc
 
+[![Live at exo-calc.com](https://img.shields.io/website?url=https%3A%2F%2Fwww.exo-calc.com&label=live%20at%20exo-calc.com&up_message=online&style=flat-square)](https://www.exo-calc.com)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue?style=flat-square)](LICENSE)
+
 A free, in-browser damage calculator for Pokémon Champions. You set up your team and the
 enemy team, and it shows you how much every move does, in both directions, updating live as
 you change spreads, items, abilities, weather and the rest. Nothing to install, no account,
 and it runs entirely on your machine.
+
+**Try it now at [www.exo-calc.com](https://www.exo-calc.com).** No sign up, nothing to download.
 
 > **Status: Beta.** It works and the numbers are accurate for the common cases, but the
 > roster and a few mechanics are still being filled in (megas and some niche items in
