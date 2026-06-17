@@ -119,6 +119,31 @@ describe('custom Champions mega abilities', () => {
     expect(inRain.maxDamage).toBe(inSun.maxDamage);
     expect(inRain.maxDamage).toBeGreaterThan(0);
   });
+
+  it('Fire Mane gives the holder ~50% more on Fire moves, and nothing on others', () => {
+    // Same species/stats, only the ability differs, so the delta is purely the
+    // ability (Mega Pyroar's stat changes would otherwise muddy the comparison).
+    const base = set({ species: 'Pyroar', nature: 'Modest', statPoints: { ...emptySpread(), spa: 32 } });
+    const target = buildPokemon(set({ species: 'Amoonguss' }));
+    const mane = buildPokemon({ ...base, ability: 'Fire Mane' });
+    const plain = buildPokemon({ ...base, ability: 'Unnerve' });
+
+    const fireMane = calcOne(mane, target, 'Flamethrower').maxDamage;
+    const firePlain = calcOne(plain, target, 'Flamethrower').maxDamage;
+    expect(fireMane / firePlain).toBeGreaterThan(1.4);
+    expect(fireMane / firePlain).toBeLessThan(1.6);
+
+    // A non-Fire move (Hyper Voice is Normal) is untouched.
+    expect(calcOne(mane, target, 'Hyper Voice').maxDamage)
+      .toBe(calcOne(plain, target, 'Hyper Voice').maxDamage);
+  });
+
+  it('Eelevate floats the holder (Ground immunity, mapped to Levitate)', () => {
+    const chomp = buildPokemon(set({ species: 'Garchomp', nature: 'Adamant', statPoints: { ...emptySpread(), atk: 32 }, moves: ['Earthquake'] }));
+    // Eelektross is pure Electric (no Ground immunity by type); Eelevate must add it.
+    const megaEel = buildPokemon(set({ species: 'Eelektross', megaForme: 'Eelektross-Mega' }));
+    expect(calcOne(chomp, megaEel, 'Earthquake').maxDamage).toBe(0);
+  });
 });
 
 describe('current-HP-fraction moves (Super Fang etc.)', () => {

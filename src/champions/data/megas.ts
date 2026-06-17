@@ -26,7 +26,21 @@ export interface MegaForme {
   weightkg: number;
 }
 
-export const MEGAS = rawMegas as MegaForme[];
+/**
+ * Champions-custom mega abilities the upstream data we scrape doesn't carry yet
+ * (it lists a base-species / placeholder ability instead). Applied on load so a
+ * `fetch-megas.mjs` refresh can't quietly revert them. From the latest
+ * Regulation: Mega Eelektross has Eelevate and Mega Pyroar has Fire Mane.
+ * See serebii.net/pokemonchampions/newabilities.shtml.
+ */
+const ABILITY_OVERRIDES: Record<string, string> = {
+  'Eelektross-Mega': 'Eelevate',
+  'Pyroar-Mega': 'Fire Mane',
+};
+
+export const MEGAS = (rawMegas as MegaForme[]).map((m) =>
+  ABILITY_OVERRIDES[m.name] ? { ...m, ability: ABILITY_OVERRIDES[m.name] } : m,
+);
 
 const byName = new Map(MEGAS.map((m) => [m.name, m] as const));
 

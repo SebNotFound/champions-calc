@@ -49,10 +49,18 @@ export function getGen(): Generation {
 //                      reactive status, not a per-hit damage change, so the calc
 //                      needs no adjustment (set the attacker's status to Burn to
 //                      model the resulting Attack drop on follow-up hits).
+//   • Eelevate       — (Mega Eelektross) floats like Levitate (Ground immunity +
+//                      hazard immunity); mapped to Levitate. Its other half,
+//                      "boost the highest stat on KO", is a post-KO effect that a
+//                      damage calc doesn't model.
+//   • Fire Mane      — (Mega Pyroar) +50% power to the holder's Fire-type moves.
 // ---------------------------------------------------------------------------
 
 /** Custom abilities mapped to an equivalent ability @smogon/calc understands. */
-const ABILITY_ALIAS: Record<string, string> = { 'Piercing Drill': 'Unseen Fist' };
+const ABILITY_ALIAS: Record<string, string> = {
+  'Piercing Drill': 'Unseen Fist',
+  Eelevate: 'Levitate',
+};
 
 /** Moves that "-ate" abilities never retype (their type is already variable). */
 const ATE_EXCLUDED = new Set(['Weather Ball', 'Terrain Pulse', 'Struggle']);
@@ -202,7 +210,8 @@ export function summarize(result: CalcResult): DamageSummary {
 /**
  * Build the Move and Field for a calc, applying custom Champions abilities that
  * @smogon/calc doesn't know: Dragonize re-types Normal moves to Dragon (with the
- * -ate ×1.2 power boost), and Mega Sol forces Sun for the attacker.
+ * -ate ×1.2 power boost), Fire Mane gives the holder's Fire moves +50% power, and
+ * Mega Sol forces Sun for the attacker.
  */
 function prepareMoveAndField(attacker: Pokemon, moveName: string, field: Field): { move: Move; field: Field } {
   const gen = getGen();
@@ -213,6 +222,12 @@ function prepareMoveAndField(attacker: Pokemon, moveName: string, field: Field):
     move = new Move(gen, moveName, {
       overrides: { type: 'Dragon', basePower: Math.round(move.bp * 1.2) },
     });
+  }
+
+  // Fire Mane: +50% to the holder's damaging Fire moves. (A Dragonized move is
+  // Dragon, never Fire, so the two never collide.)
+  if (attacker.hasAbility('Fire Mane') && move.type === 'Fire' && move.bp > 0) {
+    move = new Move(gen, moveName, { overrides: { basePower: Math.round(move.bp * 1.5) } });
   }
 
   let resolvedField = field;
