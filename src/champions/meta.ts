@@ -12,6 +12,14 @@ import { Dex } from '@pkmn/dex';
 import { Generations } from '@pkmn/data';
 import { Sprites } from '@pkmn/img';
 import { getMega } from './data/megas';
+import championsSprites from './data/champions-sprites.json';
+
+/**
+ * Champions-original Mega formes (Mega Eelektross, Mega Raichu X/Y, ...) that
+ * Showdown has no sprite for, mapped to a locally bundled 120x120 sprite under
+ * public/sprites/champions/. Regenerate with `node scripts/fetch-champions-sprites.mjs`.
+ */
+const LOCAL_SPRITES = championsSprites as Record<string, string>;
 
 // National-dex filter: Champions' roster spans past gens, so species/formes
 // that never made it into Scarlet/Violet (Floette-Eternal, …) must still
@@ -59,6 +67,9 @@ export async function speciesMoves(species: string): Promise<string[]> {
  * This fixed the many broken sprites the naive pokemondb slug produced.
  */
 export function spriteUrl(species: string): string {
+  // Champions-original Megas have a bundled local sprite (Showdown has none).
+  const local = LOCAL_SPRITES[species];
+  if (local) return `/sprites/champions/${local}`;
   try {
     return Sprites.getDexPokemon(species).url;
   } catch {

@@ -162,5 +162,7 @@ for the original.
 ## Credits
 
 Damage engine by the Smogon community (`@smogon/calc`). Pokémon data and sprites via the
-`@pkmn` projects. Pokémon is a trademark of Nintendo, Game Freak and The Pokémon Company.
-This is a fan made tool with no affiliation.
+`@pkmn` projects. Sprites for the Champions-original Mega Evolutions (which Showdown has no
+art for) are from [Serebii.net](https://www.serebii.net/pokemonchampions/). Pokémon is a
+trademark of Nintendo, Game Freak and The Pokémon Company. This is a fan made tool with no
+affiliation.
