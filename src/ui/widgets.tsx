@@ -2,7 +2,7 @@
  * Small, presentational building blocks shared across the editors.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { listSpeciesOptions, listMoves, listItems, listAbilities, spriteUrl } from '../champions';
+import { listSpeciesOptions, listMoves, listItems, listAbilities, spriteUrl, baseSpriteUrl } from '../champions';
 import type { DamageSummary } from '../champions';
 
 /**
@@ -17,13 +17,24 @@ import type { DamageSummary } from '../champions';
  */
 export function Sprite({ species, className, alt = '' }: { species: string; className?: string; alt?: string }) {
   const url = useMemo(() => spriteUrl(species), [species]);
+  // Champions-original Megas have no Showdown forme art, so fall back to the base
+  // species sprite instead of a blank box (see baseSpriteUrl). '' for non-megas.
+  const fallback = useMemo(() => baseSpriteUrl(species), [species]);
   const [src, setSrc] = useState(url);
   const [failed, setFailed] = useState(false);
+  const target = useRef(url);          // the sprite we're currently retrying (forme, then base)
   const tries = useRef(0);
+  const triedFallback = useRef(false);
 
-  useEffect(() => { setSrc(url); setFailed(false); tries.current = 0; }, [url]);
+  useEffect(() => {
+    target.current = url;
+    tries.current = 0;
+    triedFallback.current = false;
+    setSrc(url);
+    setFailed(false);
+  }, [url]);
 
-  // No URL or out of retries — keep the layout box, but show nothing (no broken-image icon).
+  // No URL or out of options — keep the layout box, but show nothing (no broken-image icon).
   if (!url || failed) return <span className={className} aria-hidden />;
 
   return (
@@ -35,8 +46,15 @@ export function Sprite({ species, className, alt = '' }: { species: string; clas
       draggable={false}
       onError={() => {
         if (tries.current < 2) {
+          // Flaky CDN — retry the same sprite a couple of times with a cache-buster.
           tries.current += 1;
-          setSrc(`${url}${url.includes('?') ? '&' : '?'}r=${tries.current}`);
+          setSrc(`${target.current}${target.current.includes('?') ? '&' : '?'}r=${tries.current}`);
+        } else if (fallback && fallback !== target.current && !triedFallback.current) {
+          // The forme sprite genuinely doesn't exist — swap to the base species art.
+          triedFallback.current = true;
+          target.current = fallback;
+          tries.current = 0;
+          setSrc(fallback);
         } else {
           setFailed(true);
         }

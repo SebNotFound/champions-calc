@@ -11,6 +11,7 @@
 import { Dex } from '@pkmn/dex';
 import { Generations } from '@pkmn/data';
 import { Sprites } from '@pkmn/img';
+import { getMega } from './data/megas';
 
 // National-dex filter: Champions' roster spans past gens, so species/formes
 // that never made it into Scarlet/Violet (Floette-Eternal, …) must still
@@ -63,4 +64,19 @@ export function spriteUrl(species: string): string {
   } catch {
     return '';
   }
+}
+
+/**
+ * Fallback sprite for a name, or '' if there isn't a sensible one.
+ *
+ * Many Champions Megas are original to the game (Mega Eelektross, Mega Raichu X/Y,
+ * Mega Pyroar, …), so Pokémon Showdown — where the sprites come from — has no art
+ * for the forme and the request 404s. When that happens we show the base species
+ * sprite (which always exists) instead of a blank box. Real Megas keep their own
+ * art and never hit this. Returns '' for a non-mega so the caller knows there's
+ * nothing better to try.
+ */
+export function baseSpriteUrl(species: string): string {
+  const mega = getMega(species);
+  return mega ? spriteUrl(mega.baseSpecies) : '';
 }
