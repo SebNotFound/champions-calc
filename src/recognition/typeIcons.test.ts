@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { speciesTypeBuckets, typeMatchBonus, TYPE_MATCH_BONUS, type ColorBucket } from './typeIcons';
-import { acceptsAutoFill } from './localRecognizer';
+import { acceptsAutoFill, worthMentioning } from './localRecognizer';
 
 const set = (...b: ColorBucket[]) => new Set(b);
 
@@ -16,6 +16,21 @@ describe('acceptsAutoFill', () => {
     expect(acceptsAutoFill(0.67, true)).toBe(true);
     // A type-backed read that is still too weak stays a best guess.
     expect(acceptsAutoFill(0.6, true)).toBe(false);
+  });
+});
+
+describe('worthMentioning', () => {
+  it('uses the normal bar for a plain match', () => {
+    expect(worthMentioning(0.46, false)).toBe(true);
+    expect(worthMentioning(0.44, false)).toBe(false);
+  });
+
+  it('surfaces a type-consistent match at a lower bar (the phone Whimsicott case)', () => {
+    // 0.38: below the normal mention bar, but its types are corroborated.
+    expect(worthMentioning(0.38, false)).toBe(false);
+    expect(worthMentioning(0.38, true)).toBe(true);
+    // Still drops genuinely hopeless reads, even type-consistent ones.
+    expect(worthMentioning(0.3, true)).toBe(false);
   });
 });
 

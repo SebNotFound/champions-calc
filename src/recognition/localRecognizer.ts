@@ -93,6 +93,16 @@ const TYPE_CONSISTENT_THRESHOLD = 0.66;
 const MENTION_THRESHOLD = 0.45;
 
 /**
+ * The best-guess bar for a type-consistent match. A small, low-detail sprite can
+ * fingerprint very weakly yet still be right when the panel's type icons back it:
+ * e.g. a phone-resolution Whimsicott reads at ~0.38, well under the normal mention
+ * bar, but its Grass + Fairy icons (green + pink) both match, which is strong
+ * corroboration. Surfacing it as "best guess: Whimsicott?" beats showing nothing.
+ * Only affects the best-guess tier, never auto-fill, so it can't fill a wrong mon.
+ */
+const TYPE_CONSISTENT_MENTION_THRESHOLD = 0.35;
+
+/**
  * Whether a scored match is confident enough to auto-fill rather than be offered
  * as a best guess. A plain match needs {@link MATCH_THRESHOLD}; a type-consistent
  * one (corroborated by the panel's type icons) only needs the lower
@@ -100,6 +110,14 @@ const MENTION_THRESHOLD = 0.45;
  */
 export function acceptsAutoFill(sim: number, typeConsistent: boolean): boolean {
   return sim >= MATCH_THRESHOLD || (typeConsistent && sim >= TYPE_CONSISTENT_THRESHOLD);
+}
+
+/**
+ * Whether a match that fell short of auto-fill is still worth offering as a best
+ * guess. The bar is lower for a type-consistent match, since the icons vouch for it.
+ */
+export function worthMentioning(sim: number, typeConsistent: boolean): boolean {
+  return sim >= MENTION_THRESHOLD || (typeConsistent && sim >= TYPE_CONSISTENT_MENTION_THRESHOLD);
 }
 
 /**
@@ -199,7 +217,7 @@ function matchEnemyColumn(img: Img, x0: number, x1: number, slots: Array<[number
       box: { x: x0, y: y0, w: spriteW, h: ch },
     };
     if (acceptsAutoFill(sim, typeConsistent)) enemy.push(mon);
-    else if (sim >= MENTION_THRESHOLD) uncertain.push(mon); // shaky — offer, don't fill
+    else if (worthMentioning(sim, typeConsistent)) uncertain.push(mon); // shaky — offer, don't fill
   }
   return { enemy, uncertain };
 }
