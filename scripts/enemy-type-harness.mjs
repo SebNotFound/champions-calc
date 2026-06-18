@@ -71,3 +71,5 @@ function run(file, GT) {
 
 run('samples/team-preview-1.png', ['Noivern', 'Lycanroc', 'Politoed', 'Rotom', 'Kangaskhan', 'Hippowdon']);
 run('samples/team sample 3.jpeg', ['Charizard', 'Garchomp', 'Gardevoir', 'Whimsicott', 'Venusaur', 'Medicham']);
+// Native phone capture (adb screencap) of the PC client, casual/training mode.
+run('samples/pc-team-preview.png', ['Tyranitar', 'Arcanine', 'Whimsicott', 'Drampa', 'Aggron', 'Sylveon']);
