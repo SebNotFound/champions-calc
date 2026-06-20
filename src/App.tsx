@@ -22,6 +22,7 @@ import { WeatherTerrain, SideConditions, defaultFieldState, toField, toIncomingF
 import type { FieldState } from './ui/FieldControls';
 import { SharedDatalists } from './ui/widgets';
 import { ImportDialog } from './ui/ImportDialog';
+import { TauriWindowControls, useTauriOverlayChrome } from './ui/tauri';
 import { TeamReportDialog } from './ui/TeamReportDialog';
 import { BrandLogo } from './ui/BrandLogo';
 import { PokepasteDialog } from './ui/PokepasteDialog';
@@ -70,6 +71,8 @@ export default function App() {
   const [attackerIdx, setAttackerIdx] = useState(0);
   const [fieldState, setFieldState] = useState<FieldState>(defaultFieldState);
   const [photoSide, setPhotoSide] = useState<null | 'player' | 'enemy'>(null);
+  // When the import dialog is opened by the overlay "Capture" button, grab the device immediately.
+  const [photoAutoCapture, setPhotoAutoCapture] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [pasteSide, setPasteSide] = useState<null | 'player' | 'enemy'>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
@@ -248,7 +251,7 @@ export default function App() {
       onRenameTeam={renamePlayerTeam}
       onDeleteTeam={deletePlayerTeam}
       onImportText={() => setPasteSide('player')}
-      onImportPhoto={() => setPhotoSide('player')}
+      onImportPhoto={() => { setPhotoAutoCapture(false); setPhotoSide('player'); }}
       onImportReport={() => setReportOpen(true)}
       onAddMember={addPlayerMember}
       onRemoveMember={removePlayerMember}
@@ -277,7 +280,8 @@ export default function App() {
       onRenameTeam={renameEnemyTeam}
       onDeleteTeam={deleteEnemyTeam}
       onImportText={() => setPasteSide('enemy')}
-      onImportPhoto={() => setPhotoSide('enemy')}
+      onImportPhoto={() => { setPhotoAutoCapture(false); setPhotoSide('enemy'); }}
+      onCapture={() => { setPhotoAutoCapture(true); setPhotoSide('enemy'); }}
       onAddMember={addEnemyMember}
       onRemoveMember={removeEnemyMember}
       onMemberReorder={swapEnemyMembers}
@@ -326,11 +330,13 @@ export default function App() {
     />
   );
 
+  useTauriOverlayChrome();
+
   return (
     <div className={`app${arena ? ' app--arena' : ''}`}>
       <SharedDatalists />
 
-      <header className="app-header">
+      <header className="app-header" data-tauri-drag-region>
         <div className="brand">
           <div className="brand-exo" title="EXO">
             <img className="brand-ex" src="/ex.png" alt="EXO" />
@@ -362,6 +368,7 @@ export default function App() {
           >
             {theme === 'dark' ? '☀' : '☾'}
           </button>
+          <TauriWindowControls />
         </div>
       </header>
 
@@ -509,7 +516,12 @@ export default function App() {
         />
       )}
 
-      <ImportDialog side={photoSide} onClose={() => setPhotoSide(null)} onImport={handlePhotoImport} />
+      <ImportDialog
+        side={photoSide}
+        autoCapture={photoAutoCapture}
+        onClose={() => { setPhotoSide(null); setPhotoAutoCapture(false); }}
+        onImport={handlePhotoImport}
+      />
       <TeamReportDialog
         open={reportOpen}
         onClose={() => setReportOpen(false)}

@@ -181,6 +181,9 @@
   text-transform: uppercase; letter-spacing: 0.06em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* The overlay's one-click device capture: the primary action, so accent it. */
+.import-btn--capture { color: #06121f; background: var(--ally); border-color: var(--ally); }
+.import-btn--capture:hover:not(:disabled) { filter: brightness(1.08); background: var(--ally); border-color: var(--ally); }
 
 /* ---- Member chips ---- */
 .member-list { display: flex; flex-direction: column; gap: 5px; }

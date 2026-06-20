@@ -98,6 +98,31 @@ body { margin: 0; }
     var(--bg);
 }
 
+/* ---- Desktop overlay (Tauri) only ----
+   The shell adds `tauri-overlay` to <html>. We drop the page background so the
+   game shows through; the panels keep their own surfaces and stay readable. None
+   of this affects the website (the class is never present there). */
+html.tauri-overlay,
+html.tauri-overlay #root { background: transparent !important; }
+
+/* The see-through slider fades the whole overlay (min kept high enough that the
+   slider itself stays grabbable to bring it back). */
+html.tauri-overlay .app { opacity: var(--overlay-opacity, 1); transition: opacity 0.12s ease; }
+.tauri-opacity { width: 72px; accent-color: var(--ally); cursor: pointer; }
+
+.tauri-winctl { display: flex; align-items: center; gap: 2px; }
+.tauri-wbtn {
+  width: 28px; height: 28px; padding: 0;
+  display: grid; place-items: center;
+  background: transparent; border: 1px solid transparent;
+  color: var(--text-dim); font-size: 16px; line-height: 1; border-radius: var(--radius);
+}
+.tauri-wbtn:hover { background: var(--panel-3); color: var(--text); }
+.tauri-wbtn--close:hover { background: var(--foe); color: #fff; border-color: var(--foe); }
+
+/* The "Capture from device" button sits above the dropzone in the import dialog. */
+.capture-device { width: 100%; margin-bottom: 10px; }
+
 h1, h2 { margin: 0; font-weight: 600; color: var(--text); font-family: var(--font-display); }
 
 /* ---- Controls ---- */

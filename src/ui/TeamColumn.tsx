@@ -24,6 +24,8 @@ interface Props {
   onImportText: () => void;
   onImportPhoto: () => void;
   onImportReport?: () => void;
+  /** Overlay only: capture this side from the device via adb. */
+  onCapture?: () => void;
   onAddMember: () => void;
   onRemoveMember: (i: number) => void;
   /** Swap two members by index — enables dragging a list member onto an active
@@ -55,6 +57,7 @@ export function TeamColumn(props: Props) {
         onImportText={props.onImportText}
         onImportPhoto={props.onImportPhoto}
         onImportReport={props.onImportReport}
+        onCapture={props.onCapture}
       />
       <div className="member-list">
         {team.members.map((m, i) => {
