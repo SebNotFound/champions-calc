@@ -691,3 +691,109 @@
 .rotate-gate-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); margin: 0; }
 .rotate-gate-text { font-size: 13px; line-height: 1.5; color: var(--text-dim); margin: 0; }
 .rotate-gate-card .reset-btn { margin-top: 4px; }
+
+/* ============================================================================
+   Android overlay — compact, phone-sized chrome.
+
+   Added by the Android app (it sets the `android-overlay` class on <html>, on
+   top of `tauri-overlay` which makes the page background transparent). The whole
+   calc runs full-screen in a WebView over the game, so here we trim the wasted
+   space: drop the wordmark and footer, shrink the logo / paddings / gaps, and
+   pad below the status bar (--ov-top is injected by the native shell). Scoped to
+   the class, so the website and desktop overlay are untouched.
+   ========================================================================== */
+.android-overlay .app {
+  padding: 6px 6px 10px;
+  padding-top: calc(var(--ov-top, 24px) + 6px);
+  gap: 8px;
+}
+
+/* Header: keep the EXO mark + weather + controls; drop the big wordmark. */
+.android-overlay .app-header { padding: 6px 9px; gap: 8px; }
+.android-overlay .brand { gap: 8px; }
+.android-overlay .brand-text { display: none; }
+.android-overlay .brand-exo { gap: 13px; }
+.android-overlay .brand-ex { height: 18px; }
+.android-overlay .brand-logo { width: 30px; height: 22px; }
+.android-overlay .weather-terrain { gap: 8px; }
+.android-overlay .weather-terrain .field { min-width: 86px; }
+.android-overlay .header-right { gap: 6px; }
+.android-overlay .arena-toggle { font-size: 11px; }
+.android-overlay .reset-btn { padding: 5px 8px; font-size: 10px; }
+.android-overlay .theme-toggle { width: 30px; height: 30px; font-size: 13px; }
+.android-overlay .tauri-wbtn { width: 30px; height: 30px; }
+
+/* Tighten the layout grids and cards. */
+.android-overlay .calc-layout,
+.android-overlay .battle-row,
+.android-overlay .center-col,
+.android-overlay .side-stack { gap: 8px; }
+.android-overlay .field { min-width: 0; }
+.android-overlay .field-grid { gap: 8px; }
+
+/* The footer (credits / Ko-fi) just wastes vertical space on the phone overlay. */
+.android-overlay .app-footer { display: none; }
+
+/* Drop the stat-point gauges everywhere in the overlay; keep just the numeric
+   entry (the sliders are fiddly on a phone and eat width). */
+.android-overlay .spread-slider { display: none; }
+.android-overlay .spread-row { grid-template-columns: 34px 1fr 42px; gap: 6px; }
+.android-overlay .spread-number { text-align: center; }
+
+/* ---- Arena on the phone overlay: a 2x2 paired board (kept in both orientations) ----
+   The website gates arena behind "turn sideways"; the overlay keeps the 2v2 feel
+   as a 2-column board (your #1 | enemy #1, then your #2 | enemy #2 below) in BOTH
+   portrait and landscape. Each card is a compact tile: editor stacked over the
+   damage panel. The rotate prompt isn't rendered in compact, so we re-show the
+   board the portrait media query would otherwise hide. */
+.android-overlay .app--arena .arena-bar { display: flex; }
+.android-overlay .app--arena .arena-ground--paired {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px; align-items: start;
+}
+.android-overlay .arena-card,
+.android-overlay .arena-card--foe { flex-direction: column; flex-wrap: wrap; }
+.android-overlay .arena-card .mon-editor {
+  display: flex; flex-direction: column; gap: 8px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.android-overlay .arena-card .moves-grid { grid-template-columns: 1fr; }
+.android-overlay .arena-damage {
+  flex: 1 1 auto; align-self: stretch;
+  border-radius: 0 0 var(--radius) var(--radius);
+  border-top: 1px solid var(--border); border-left: 1px solid var(--border);
+}
+.android-overlay .arena-card--foe .arena-damage {
+  border-radius: 0 0 var(--radius) var(--radius);
+  border-right: 1px solid var(--border); border-left: 1px solid var(--border);
+}
+
+/* Landscape: the cells are wider, so lay the editor in two inner columns
+   (identity beside the stat spread, moves on two columns) to make each card
+   squarer instead of a tall strip — while keeping the 2x2 board. */
+@media (orientation: landscape) {
+  .android-overlay .arena-card .mon-editor {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px;
+  }
+  .android-overlay .arena-card .mon-editor-head,
+  .android-overlay .arena-card .moves-block,
+  .android-overlay .arena-card .battle-state { grid-column: 1 / -1; }
+  .android-overlay .arena-card .moves-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* The active-Pokémon picker: a row of tappable team sprites. Not a native
+   <select> — those don't open reliably from a system-overlay WebView — so this
+   is plain DOM. Tap a sprite to drop that Pokémon into this active slot. */
+.android-overlay .arena-pick {
+  display: flex; gap: 4px; flex-wrap: wrap; width: 100%; margin: 0 0 6px; padding: 4px;
+  background: var(--panel-3); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.android-overlay .arena-card--ally .arena-pick { border-left: 3px solid var(--ally); }
+.android-overlay .arena-card--foe .arena-pick { border-left: 3px solid var(--foe); }
+.android-overlay .arena-pick-chip {
+  width: 38px; height: 38px; padding: 0; display: grid; place-items: center;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.android-overlay .arena-pick-chip img { width: 34px; height: 34px; object-fit: contain; }
+.android-overlay .arena-card--ally .arena-pick-chip.active { border-color: var(--ally); box-shadow: 0 0 0 1px var(--ally); }
+.android-overlay .arena-card--foe .arena-pick-chip.active { border-color: var(--foe); box-shadow: 0 0 0 1px var(--foe); }

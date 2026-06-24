@@ -1,9 +1,11 @@
 /**
  * Small, presentational building blocks shared across the editors.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { listSpeciesOptions, listMoves, listItems, listAbilities, spriteUrl, baseSpriteUrl } from '../champions';
 import type { DamageSummary } from '../champions';
+import { isTauri, isAndroidOverlay } from './tauri';
 
 /**
  * A Pokémon sprite that survives the flaky remote CDN.
@@ -100,14 +102,22 @@ interface ComboboxProps {
 }
 
 /**
- * A text input backed by a shared datalist (type-ahead over big lists).
+ * A text input with type-ahead over a big list.
  *
- * NB: we deliberately do NOT set `autocomplete="off"`. Chrome suppresses the
- * <datalist> suggestion dropdown entirely when autocomplete is off, which made
- * these pickers type-only (you had to type the whole name). Leaving it unset
- * lets the datalist show.
+ * On the website it uses the native `<datalist>` (fast, and we deliberately do NOT
+ * set `autocomplete="off"`, which would suppress the dropdown). In the desktop
+ * overlay the native datalist popup is a separate OS window that renders BEHIND
+ * the always-on-top overlay (so no suggestions show), so there we draw our own
+ * suggestion list in the DOM instead. The website behaviour is unchanged.
  */
-export function Combobox({ value, onChange, listId, placeholder, className, ...rest }: ComboboxProps) {
+export function Combobox(props: ComboboxProps) {
+  // Both overlays render the suggestion list in the DOM: on the desktop (Tauri)
+  // the native datalist popup hides behind the always-on-top window; in the
+  // Android system-overlay WebView native popups don't open reliably at all.
+  return isTauri() || isAndroidOverlay() ? <ComboboxMenu {...props} /> : <ComboboxNative {...props} />;
+}
+
+function ComboboxNative({ value, onChange, listId, placeholder, className, ...rest }: ComboboxProps) {
   return (
     <input
       className={className}
@@ -118,6 +128,194 @@ export function Combobox({ value, onChange, listId, placeholder, className, ...r
       spellCheck={false}
       {...rest}
     />
+  );
+}
+
+/** Up to this many suggestions are shown. */
+const CBX_MAX = 8;
+
+/** Overlay-only: a custom suggestion dropdown drawn in the DOM (and portalled to
+ *  the body with fixed positioning, so it floats above the always-on-top window
+ *  and is never clipped by a scrolling panel). Reads the same shared `<datalist>`
+ *  as its option source, so call sites don't change. */
+function ComboboxMenu({ value, onChange, listId, placeholder, className, ...rest }: ComboboxProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number } | null>(null);
+
+  const matches = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    if (!q) return [];
+    const dl = document.getElementById(listId) as HTMLDataListElement | null;
+    if (!dl) return [];
+    const starts: string[] = [];
+    const includes: string[] = [];
+    const opts = dl.options;
+    for (let i = 0; i < opts.length && starts.length < CBX_MAX; i++) {
+      const v = opts[i].value;
+      const lv = v.toLowerCase();
+      if (lv.startsWith(q)) starts.push(v);
+      else if (includes.length < CBX_MAX && lv.includes(q)) includes.push(v);
+    }
+    return [...starts, ...includes].slice(0, CBX_MAX);
+  }, [value, listId, open]);
+
+  const place = () => {
+    const r = inputRef.current?.getBoundingClientRect();
+    if (r) setRect({ left: r.left, top: r.bottom, width: r.width });
+  };
+
+  // Keep the menu glued to the input while scrolling/resizing.
+  useEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open]);
+
+  const choose = (v: string) => { onChange(v); setOpen(false); };
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setActive((a) => Math.min(a + 1, matches.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
+    else if (e.key === 'Enter' && open && matches[active]) { e.preventDefault(); choose(matches[active]); }
+    else if (e.key === 'Escape') { setOpen(false); }
+  };
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        className={className}
+        value={value}
+        placeholder={placeholder}
+        spellCheck={false}
+        autoComplete="off"
+        onChange={(e) => { onChange(e.target.value); setOpen(true); setActive(0); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+        onKeyDown={onKeyDown}
+        {...rest}
+      />
+      {open && rect && matches.length > 0 && createPortal(
+        <ul className="cbx-list" style={{ left: rect.left, top: rect.top, width: rect.width }}>
+          {matches.map((m, i) => (
+            <li
+              key={m}
+              className={`cbx-opt${i === active ? ' active' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); choose(m); }}
+              onMouseEnter={() => setActive(i)}
+            >
+              {m}
+            </li>
+          ))}
+        </ul>,
+        document.body,
+      )}
+    </>
+  );
+}
+
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface SelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: SelectOption[];
+  className?: string;
+  disabled?: boolean;
+  'aria-label'?: string;
+}
+
+/**
+ * A dropdown over a fixed set of options.
+ *
+ * On the website it's a native `<select>`. In BOTH overlays it's a custom DOM
+ * menu instead: a native `<select>` opens its list in a separate OS popup window,
+ * which renders behind the always-on-top desktop overlay and does not open at all
+ * from the Android system-overlay WebView. The custom menu is drawn in the page
+ * (portalled to the body), so it works in both. The website is unchanged.
+ */
+export function Select(props: SelectProps) {
+  return isTauri() || isAndroidOverlay() ? <SelectMenu {...props} /> : <SelectNative {...props} />;
+}
+
+function SelectNative({ value, onChange, options, className, disabled, ...rest }: SelectProps) {
+  return (
+    <select
+      className={className}
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+      {...rest}
+    >
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+}
+
+function SelectMenu({ value, onChange, options, className, disabled, ...rest }: SelectProps) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number } | null>(null);
+
+  const current = options.find((o) => o.value === value);
+
+  const place = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setRect({ left: r.left, top: r.bottom, width: r.width });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open]);
+
+  const choose = (v: string) => { onChange(v); setOpen(false); };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className={`select-menu-btn${className ? ` ${className}` : ''}`}
+        disabled={disabled}
+        onClick={() => { if (!disabled) setOpen((o) => !o); }}
+        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        {...rest}
+      >
+        <span className="select-menu-label">{current?.label ?? ''}</span>
+        <span className="select-menu-caret" aria-hidden>▾</span>
+      </button>
+      {open && rect && createPortal(
+        <ul className="cbx-list" style={{ left: rect.left, top: rect.top, width: rect.width }}>
+          {options.map((o) => (
+            <li
+              key={o.value}
+              className={`cbx-opt${o.value === value ? ' active' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); choose(o.value); }}
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>,
+        document.body,
+      )}
+    </>
   );
 }
 

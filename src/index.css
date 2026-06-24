@@ -110,6 +110,48 @@ html.tauri-overlay #root { background: transparent !important; }
 html.tauri-overlay .app { opacity: var(--overlay-opacity, 1); transition: opacity 0.12s ease; }
 .tauri-opacity { width: 72px; accent-color: var(--ally); cursor: pointer; }
 
+/* Custom autocomplete dropdown (overlay only — the native datalist popup renders
+   behind the always-on-top window). Portalled to <body> with fixed position. */
+.cbx-list {
+  position: fixed;
+  z-index: 9999;
+  margin: 2px 0 0;
+  padding: 3px;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--border-bright);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.cbx-opt {
+  padding: 5px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cbx-opt.active { background: var(--ally); color: #04141b; }
+
+/* Custom <select> replacement trigger (overlays only — see Select in widgets).
+   Styled to read like the native inputs/selects it stands in for. */
+.select-menu-btn {
+  width: 100%;
+  display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  font: inherit; text-align: left;
+  color: var(--text); background: var(--panel-3);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 5px 8px;
+}
+.select-menu-btn:hover:not(:disabled) { background: var(--panel-3); border-color: var(--border-bright); }
+.select-menu-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.select-menu-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.select-menu-caret { color: var(--text-dim); font-size: 11px; flex-shrink: 0; }
+
 .tauri-winctl { display: flex; align-items: center; gap: 2px; }
 .tauri-wbtn {
   width: 28px; height: 28px; padding: 0;

@@ -1,0 +1,8 @@
+.gradle/
+build/
+app/build/
+local.properties
+*.apk
+
+# The web calc is copied in from the root `dist/` at build time (see build-apk.bat).
+app/src/main/assets/

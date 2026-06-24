@@ -9,7 +9,7 @@
  *  • The enemy team's Pokémon are the calc targets; every attacker move is
  *    scored against each, live.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Pokemon } from '@smogon/calc';
 import { MatchupPreview } from './ui/MatchupPreview';
@@ -22,7 +22,10 @@ import { WeatherTerrain, SideConditions, defaultFieldState, toField, toIncomingF
 import type { FieldState } from './ui/FieldControls';
 import { SharedDatalists } from './ui/widgets';
 import { ImportDialog } from './ui/ImportDialog';
-import { TauriWindowControls, useTauriOverlayChrome } from './ui/tauri';
+import {
+  TauriWindowControls, useTauriOverlayChrome, useOverlayEvent,
+  AndroidOverlayControls, useAndroidOverlayChrome, isAndroidOverlay,
+} from './ui/tauri';
 import { TeamReportDialog } from './ui/TeamReportDialog';
 import { BrandLogo } from './ui/BrandLogo';
 import { PokepasteDialog } from './ui/PokepasteDialog';
@@ -330,7 +333,51 @@ export default function App() {
     />
   );
 
+  // The arena cards are rendered the same way in both arena layouts (the desktop
+  // two-column board and the phone overlay's paired board), so define them once.
+  // `compact` is the Android overlay: there, each card also gets a `roster` so you
+  // can switch the active Pokémon with a tap (drag is impractical on a phone).
+  const compact = isAndroidOverlay();
+  const renderAllyCard = (set: ChampionsSet, i: number) => (
+    <ArenaCard
+      key={`pa-${playerTeamIdx}-${i}`}
+      set={set}
+      onChange={(next) => updateMembers('playerTeams', playerTeamIdx, (ms) => ms.map((m, j) => (j === i ? next : m)))}
+      onRemove={() => removePlayerMember(i)}
+      index={i}
+      onSwap={swapPlayerMembers}
+      role="attacker"
+      side="ally"
+      title={`Your ${i + 1}`}
+      attackers={enemyBattlers}
+      field={incomingField}
+      roster={compact ? playerTeam.members : undefined}
+    />
+  );
+  const renderFoeCard = (set: ChampionsSet, i: number) => (
+    <ArenaCard
+      key={`ea-${enemyTeamIdx}-${i}`}
+      set={set}
+      onChange={(next) => updateEnemyMember(i, next)}
+      onRemove={() => removeEnemyMember(i)}
+      index={i}
+      onSwap={swapEnemyMembers}
+      role="defender"
+      side="foe"
+      title={`Target ${i + 1}`}
+      attackers={playerBattlers}
+      field={field}
+      roster={compact ? enemyTeam.members : undefined}
+    />
+  );
+
   useTauriOverlayChrome();
+  useAndroidOverlayChrome();
+  // Global hotkey (Ctrl+Shift+C in the overlay) -> capture the enemy team.
+  useOverlayEvent('overlay-capture-enemy', useCallback(() => {
+    setPhotoAutoCapture(true);
+    setPhotoSide('enemy');
+  }, []));
 
   return (
     <div className={`app${arena ? ' app--arena' : ''}`}>
@@ -369,6 +416,7 @@ export default function App() {
             {theme === 'dark' ? '☀' : '☾'}
           </button>
           <TauriWindowControls />
+          <AndroidOverlayControls />
         </div>
       </header>
 
@@ -378,23 +426,25 @@ export default function App() {
            left, the enemy's two on the right, each a wide card with the damage it
            takes and a tab to pick which of the opposing two is hitting it. */
         <>
-          {/* Phones in portrait can't fit the wide 2v2 board, so we gate it
-              behind a turn-sideways prompt. Hidden by CSS on desktop and in
-              landscape; when shown, the bar and ground below are hidden too. */}
-          <div className="rotate-gate" role="status">
-            <div className="rotate-gate-card">
-              <svg className="rotate-gate-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="5" y="2" width="14" height="20" rx="2.5" />
-                <path className="rotate-gate-arrow" d="M2.5 13.5a9 9 0 0 0 8 7" fill="none" />
-              </svg>
-              <p className="rotate-gate-title">Turn your device sideways</p>
-              <p className="rotate-gate-text">
-                Arena is a wide 2v2 board, so it needs a landscape screen. Rotate your phone to play
-                it here, or switch to Classic mode.
-              </p>
-              <button className="reset-btn" onClick={() => setArena(false)}>Use Classic mode instead</button>
+          {/* Phones in portrait can't fit the wide 2v2 board, so on the WEBSITE we
+              gate it behind a turn-sideways prompt. The Android overlay (compact)
+              instead gets a paired board built for portrait, so it skips this. */}
+          {!compact && (
+            <div className="rotate-gate" role="status">
+              <div className="rotate-gate-card">
+                <svg className="rotate-gate-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="5" y="2" width="14" height="20" rx="2.5" />
+                  <path className="rotate-gate-arrow" d="M2.5 13.5a9 9 0 0 0 8 7" fill="none" />
+                </svg>
+                <p className="rotate-gate-title">Turn your device sideways</p>
+                <p className="rotate-gate-text">
+                  Arena is a wide 2v2 board, so it needs a landscape screen. Rotate your phone to play
+                  it here, or switch to Classic mode.
+                </p>
+                <button className="reset-btn" onClick={() => setArena(false)}>Use Classic mode instead</button>
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="arena-bar">
             <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
@@ -405,49 +455,38 @@ export default function App() {
             <div className="arena-flag arena-flag--foe"><span>ENEMY TEAM</span></div>
           </div>
 
-          <main className="arena-ground">
-            <div className="arena-col arena-col--ally">
-              {playerTeam.members.length === 0
-                ? <p className="results-hint">Add a Pokémon to your team above.</p>
-                : playerTeam.members.slice(0, 2).map((set, i) => (
-                    <ArenaCard
-                      key={`pa-${playerTeamIdx}-${i}`}
-                      set={set}
-                      onChange={(next) => updateMembers('playerTeams', playerTeamIdx, (ms) => ms.map((m, j) => (j === i ? next : m)))}
-                      onRemove={() => removePlayerMember(i)}
-                      index={i}
-                      onSwap={swapPlayerMembers}
-                      role="attacker"
-                      side="ally"
-                      title={`Your ${i + 1}`}
-                      attackers={enemyBattlers}
-                      field={incomingField}
-                    />
-                  ))}
-            </div>
+          {compact ? (
+            /* Phone overlay: a paired 2-column board — your #1 vs enemy #1 on the
+               first row, your #2 vs enemy #2 below (scroll for the second row). */
+            <main className="arena-ground arena-ground--paired">
+              {[0, 1].map((i) => (
+                <Fragment key={`pair-${i}`}>
+                  {playerTeam.members[i]
+                    ? renderAllyCard(playerTeam.members[i], i)
+                    : <p className="results-hint">Ajoute un Pokémon à ton équipe.</p>}
+                  {enemyTeam.members[i]
+                    ? renderFoeCard(enemyTeam.members[i], i)
+                    : <p className="results-hint">Ajoute une cible ennemie.</p>}
+                </Fragment>
+              ))}
+            </main>
+          ) : (
+            <main className="arena-ground">
+              <div className="arena-col arena-col--ally">
+                {playerTeam.members.length === 0
+                  ? <p className="results-hint">Add a Pokémon to your team above.</p>
+                  : playerTeam.members.slice(0, 2).map((set, i) => renderAllyCard(set, i))}
+              </div>
 
-            <div className="arena-vs"><span>VS</span></div>
+              <div className="arena-vs"><span>VS</span></div>
 
-            <div className="arena-col arena-col--foe">
-              {enemyTeam.members.length === 0
-                ? <p className="results-hint">Add a target to the enemy team above.</p>
-                : enemyTeam.members.slice(0, 2).map((set, i) => (
-                    <ArenaCard
-                      key={`ea-${enemyTeamIdx}-${i}`}
-                      set={set}
-                      onChange={(next) => updateEnemyMember(i, next)}
-                      onRemove={() => removeEnemyMember(i)}
-                      index={i}
-                      onSwap={swapEnemyMembers}
-                      role="defender"
-                      side="foe"
-                      title={`Target ${i + 1}`}
-                      attackers={playerBattlers}
-                      field={field}
-                    />
-                  ))}
-            </div>
-          </main>
+              <div className="arena-col arena-col--foe">
+                {enemyTeam.members.length === 0
+                  ? <p className="results-hint">Add a target to the enemy team above.</p>
+                  : enemyTeam.members.slice(0, 2).map((set, i) => renderFoeCard(set, i))}
+              </div>
+            </main>
+          )}
         </>
       ) : (
         <main className="calc-layout">

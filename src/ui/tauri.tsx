@@ -16,6 +16,7 @@ interface TauriWindow {
 interface TauriGlobal {
   core: { invoke: <T>(cmd: string, args?: Record<string, unknown>) => Promise<T> };
   window: { getCurrentWindow: () => TauriWindow };
+  event: { listen: <T>(event: string, handler: (e: { payload: T }) => void) => Promise<() => void> };
 }
 
 function tauri(): TauriGlobal | undefined {
@@ -73,6 +74,24 @@ export function TauriWindowControls() {
 }
 
 /**
+ * Run `handler` when the desktop shell emits `name` (used for global-hotkey
+ * actions like "capture the enemy team"). Inert on the website.
+ */
+export function useOverlayEvent(name: string, handler: () => void) {
+  useEffect(() => {
+    const t = tauri();
+    if (!t?.event) return;
+    let unlisten: (() => void) | undefined;
+    let cancelled = false;
+    t.event.listen(name, () => handler()).then((u) => {
+      if (cancelled) u();
+      else unlisten = u;
+    });
+    return () => { cancelled = true; unlisten?.(); };
+  }, [name, handler]);
+}
+
+/**
  * In the overlay, mark the document so the page background goes transparent (the
  * panels stay opaque), letting the game show through. No-op on the website.
  */
@@ -83,4 +102,58 @@ export function useTauriOverlayChrome() {
       return () => document.documentElement.classList.remove('tauri-overlay');
     }
   }, []);
+}
+
+/* ============================================================================
+   Android overlay bridge.
+
+   The Android app hosts this same web calc in a WebView and injects a global
+   `window.AndroidOverlay` object (addJavascriptInterface). As with Tauri, the
+   website never sees it: `isAndroidOverlay()` is false on the web, so all of the
+   below is inert there.
+   ========================================================================== */
+
+interface AndroidBridge {
+  /** Close the full-screen calc panel and bring the floating bubble back. */
+  hide?: () => void;
+}
+
+function androidBridge(): AndroidBridge | undefined {
+  return (window as unknown as { AndroidOverlay?: AndroidBridge }).AndroidOverlay;
+}
+
+/** True when running inside the Android floating overlay (not the website). */
+export function isAndroidOverlay(): boolean {
+  return !!androidBridge();
+}
+
+/**
+ * In the Android overlay, reuse the transparent-background chrome AND add a
+ * `android-overlay` class that compacts the UI for a phone-sized screen.
+ */
+export function useAndroidOverlayChrome() {
+  useEffect(() => {
+    if (!isAndroidOverlay()) return;
+    const el = document.documentElement;
+    el.classList.add('tauri-overlay', 'android-overlay');
+    return () => el.classList.remove('tauri-overlay', 'android-overlay');
+  }, []);
+}
+
+/**
+ * The "hide" button for the Android overlay header: collapses the calc back to
+ * the floating bubble. Renders nothing on the website or the desktop overlay.
+ */
+export function AndroidOverlayControls() {
+  if (!isAndroidOverlay()) return null;
+  return (
+    <button
+      className="tauri-wbtn"
+      title="Masquer le calc"
+      aria-label="Masquer le calc"
+      onClick={() => androidBridge()?.hide?.()}
+    >
+      ⌄
+    </button>
+  );
 }

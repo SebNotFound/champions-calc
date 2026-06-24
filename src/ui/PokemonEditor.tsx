@@ -8,7 +8,7 @@
  * +/- stats, and a Mega Evolution holds no item (the Omni Ring replaces it).
  */
 import { useEffect, useId, useState, type DragEvent } from 'react';
-import { Combobox, TypeBadge, DATALIST, Sprite } from './widgets';
+import { Combobox, Select, TypeBadge, DATALIST, Sprite } from './widgets';
 import { StatSpreadEditor } from './StatSpreadEditor';
 import { BattleState } from './BattleState';
 import {
@@ -153,39 +153,48 @@ export function PokemonEditor({
       <div className="field-grid">
         <label className="field">
           <span>Nature</span>
-          <select value={set.nature} onChange={(e) => patch({ nature: e.target.value as NatureName })}>
-            {NATURE_NAMES.map((n) => (
-              <option key={n} value={n}>{n} ({describeNature(n)})</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Item</span>
-          <input
-            value={mega ? '' : (set.item ?? '')}
-            onChange={(e) => patch({ item: e.target.value || undefined })}
-            list={DATALIST.items}
-            placeholder={mega ? 'No item (Mega)' : 'Item…'}
-            disabled={!!mega}
-            spellCheck={false}
+          <Select
+            value={set.nature}
+            onChange={(v) => patch({ nature: v as NatureName })}
+            options={NATURE_NAMES.map((n) => ({ value: n, label: `${n} (${describeNature(n)})` }))}
+            aria-label="Nature"
           />
         </label>
         <label className="field">
+          <span>Item</span>
+          {mega ? (
+            <input value="" placeholder="No item (Mega)" disabled spellCheck={false} />
+          ) : (
+            <Combobox
+              value={set.item ?? ''}
+              onChange={(v) => patch({ item: v || undefined })}
+              listId={DATALIST.items}
+              placeholder="Item…"
+              aria-label="Item"
+            />
+          )}
+        </label>
+        <label className="field">
           <span>Ability</span>
-          <select
+          <Select
             value={set.ability ?? ''}
-            onChange={(e) => patch({ ability: e.target.value || undefined })}
+            onChange={(v) => patch({ ability: v || undefined })}
+            options={[
+              ...(set.ability ? [] : [{ value: '', label: '—' }]),
+              ...abilityOptions.map((a) => ({ value: a, label: a })),
+            ]}
             disabled={!!mega}
-          >
-            {!set.ability && <option value="">—</option>}
-            {abilityOptions.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
+            aria-label="Ability"
+          />
         </label>
         <label className="field">
           <span>Status</span>
-          <select value={set.status ?? ''} onChange={(e) => patch({ status: e.target.value || undefined })}>
-            {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <Select
+            value={set.status ?? ''}
+            onChange={(v) => patch({ status: v || undefined })}
+            options={STATUSES.map(([v, l]) => ({ value: v, label: l }))}
+            aria-label="Status"
+          />
         </label>
       </div>
       </div>

@@ -24,20 +24,38 @@ npm install
 npm run tauri dev
 ```
 
-The window opens always-on-top. Put the enemy Team Preview on your phone, click
-**Capture enemy team**, and it fills in what it read.
+The window opens always-on-top with the full calculator. On the enemy team box use
+**Capture** (one click, reads the device via adb) or the global hotkey below.
 
-## Build a standalone app
+## Global hotkeys
+
+These work even while the game is focused:
+
+- **Ctrl+Shift+X** - show / hide the overlay
+- **Ctrl+Shift+C** - capture the enemy team (adb) and open the review
+- **Ctrl+Shift+A** - toggle click-through (play *through* the overlay; press again to interact)
+
+## Launch it (built app)
+
+For everyday use, build it once and launch the standalone app (instant, no compile):
 
 ```bash
 cd overlay
 npm run tauri build
 ```
 
-The installer/exe lands in `src-tauri/target/release/`.
+That produces:
+- a directly runnable exe at `src-tauri/target/release/app.exe`,
+- an installer under `src-tauri/target/release/bundle/` (Start Menu shortcut).
 
-## Status
+Convenience scripts in this folder:
+- **launch-overlay.bat** - double-click to start the built app (right-click -> Send to -> Desktop to make a shortcut),
+- **dev-overlay.bat** - start in dev mode instead.
 
-V1 proves the capture -> recognize loop on device: it shows the enemy team it read
-(confident reads, plus low-confidence best guesses to confirm). The full damage calc
-is layered on next.
+Note: the app needs `adb` on PATH at runtime for Capture.
+
+## Notes
+
+It is the same web app loaded in a transparent Tauri window. All the desktop-only
+bits (adb capture, window controls, opacity slider, hotkeys) are gated behind the
+Tauri runtime, so importing the shared `../src` never affects the website build.

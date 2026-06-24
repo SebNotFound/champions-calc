@@ -22,5 +22,9 @@ export default defineConfig({
     alias: {
       '@core': fileURLToPath(new URL('../src', import.meta.url)),
     },
+    // The shared core (../src) and this app both import react; without deduping,
+    // the production build bundles two React copies and hooks crash
+    // ("Cannot read properties of null (reading 'useState')"). Force a single copy.
+    dedupe: ['react', 'react-dom'],
   },
 });
