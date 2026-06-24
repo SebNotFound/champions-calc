@@ -29,3 +29,10 @@ samples/crops
 *.sln
 *.sw?
 samples/derived-*
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
