@@ -10,6 +10,8 @@ and it runs entirely on your machine.
 
 **Try it now at [www.exo-calc.com](https://www.exo-calc.com).** No sign up, nothing to download.
 
+Thank you for the 1000 visits per month !
+
 > **Status: Beta.** It works and the numbers are accurate for the common cases, but the
 > roster and a few mechanics are still being filled in (megas and some niche items in
 > particular). Expect a rough edge here and there.
