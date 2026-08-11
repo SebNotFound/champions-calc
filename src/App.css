@@ -803,6 +803,8 @@
 .rotate-gate { display: none; }
 @media (max-width: 820px) and (orientation: portrait) {
   .app--arena .arena-bar,
+  .app--arena .arena-manage,
+  .app--arena .arena-field,
   .app--arena .arena-ground { display: none; }
   .app--arena .rotate-gate { display: flex; justify-content: center; padding: 7vh 4px; }
   /* The header is no longer fused onto the (now hidden) bar, so restore its edges. */
