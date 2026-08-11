@@ -928,3 +928,27 @@
 .android-overlay .arena-pick-chip img { width: 34px; height: 34px; object-fit: contain; }
 .android-overlay .arena-card--ally .arena-pick-chip.active { border-color: var(--ally); box-shadow: 0 0 0 1px var(--ally); }
 .android-overlay .arena-card--foe .arena-pick-chip.active { border-color: var(--foe); box-shadow: 0 0 0 1px var(--foe); }
+
+/* ---- One-time note about the classic design ----
+   A small dismissible card in the corner, so people who preferred the old look
+   know where it went without it getting in the way of the calculator. */
+.classic-note {
+  position: fixed; right: 16px; bottom: 16px; z-index: 80;
+  display: flex; align-items: flex-start; gap: 10px;
+  max-width: 340px; padding: 13px 14px;
+  background: var(--panel); border: 1px solid var(--border);
+  border-left: 3px solid var(--ally);
+  border-radius: var(--radius); box-shadow: var(--shadow-lg);
+  animation: hud-rise 0.35s ease both;
+}
+.classic-note-body { display: flex; flex-direction: column; gap: 3px; font-size: 12.5px; line-height: 1.45; }
+.classic-note-body strong { font-family: var(--font-display); font-size: 13px; font-weight: 900; }
+.classic-note-body span { color: var(--text-dim); font-weight: 700; }
+.classic-note-body a { color: var(--ally); font-weight: 800; }
+.classic-note-close {
+  flex: none; width: 24px; height: 24px; padding: 0; border: none;
+  display: grid; place-items: center; border-radius: var(--radius-chip);
+  background: transparent; color: var(--text-dim); font-size: 16px; line-height: 1;
+}
+.classic-note-close:hover { background: var(--panel-3); color: var(--text); }
+@media (max-width: 560px) { .classic-note { left: 12px; right: 12px; bottom: 12px; max-width: none; } }

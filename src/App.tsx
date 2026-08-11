@@ -79,6 +79,14 @@ export default function App() {
   const [photoAutoCapture, setPhotoAutoCapture] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [pasteSide, setPasteSide] = useState<null | 'player' | 'enemy'>(null);
+  // One-time note pointing regulars at the old design. Dismissing it sticks.
+  const [classicNote, setClassicNote] = useState(
+    () => localStorage.getItem('champions-calc/classic-note') !== 'seen',
+  );
+  const dismissClassicNote = () => {
+    setClassicNote(false);
+    localStorage.setItem('champions-calc/classic-note', 'seen');
+  };
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('champions-calc/theme');
     if (saved === 'light' || saved === 'dark') return saved;
@@ -574,6 +582,26 @@ export default function App() {
         </main>
       )}
 
+      {/* Shown once to anyone arriving on the new design, so regulars know the
+          old one did not disappear. Dismissing it is remembered. */}
+      {classicNote && (
+        <div className="classic-note" role="status">
+          <div className="classic-note-body">
+            <strong>The calculator has a new look.</strong>
+            <span>
+              Prefer the old one? You can still use it{' '}
+              <a href="/classic.html">here</a>.
+            </span>
+          </div>
+          <button
+            className="classic-note-close"
+            onClick={dismissClassicNote}
+            aria-label="Dismiss"
+            title="Dismiss"
+          >×</button>
+        </div>
+      )}
+
       <footer className="app-footer">
         <BrandLogo className="footer-logo" />
         <div className="footer-text">
@@ -587,7 +615,7 @@ export default function App() {
           <p className="footer-credit">
             {/* The previous look, built from the design-stadium branch and served
                 as static files under /classic (see public/classic). */}
-            Preferred the old look? <a href="/classic/">Use the classic design</a>.
+            Preferred the old look? <a href="/classic.html">Use the classic design</a>.
             {' '}Made by <a href="https://github.com/SebNotFound" target="_blank" rel="noopener noreferrer">SebNotFound</a>.
             If you want to help me,{' '}
             <a className="kofi-link" href="https://ko-fi.com/sebnotfound" target="_blank" rel="noopener noreferrer">buy me a Ko-fi ☕</a>
