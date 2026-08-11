@@ -73,7 +73,14 @@ export function ArenaRoster({
               key={i}
               className={`arena-tile${i < 2 ? ' active' : ''}`}
               onClick={() => onActivate(i)}
-              title={`${name} — click to send to the front line`}
+              /* Also draggable onto a battleground card, which swaps the two.
+                 The cards read this same 'text/plain' index on drop. */
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData('text/plain', String(i));
+                e.dataTransfer.effectAllowed = 'move';
+              }}
+              title={`${name} — click to send to the front line, or drag it onto a card`}
             >
               <span className="arena-tile-ring" style={{ background: ringTint(m.species, m.megaForme) }}>
                 <Sprite className="arena-tile-sprite" species={name} />

@@ -962,3 +962,7 @@
    rest of the header and would swallow the gesture). */
 .mon-editor-head--drag .poke-ring { cursor: grab; }
 .mon-editor-head--drag .poke-ring:active { cursor: grabbing; }
+
+/* Roster tiles can be dragged onto a battleground card to swap that Pokémon in. */
+.arena-tile { cursor: grab; }
+.arena-tile:active { cursor: grabbing; }
