@@ -967,27 +967,19 @@
 .arena-tile { cursor: grab; }
 .arena-tile:active { cursor: grabbing; }
 
-/* ---- Compact arena bars ----
-   Same look, tighter boxes. The rosters and the field bar were eating a third of
-   the screen before the battleground even started, so every cell here is trimmed:
-   smaller rings, less padding, and tighter gaps between the bars themselves. */
-.app--arena { gap: 10px; }
-.arena-manage, .arena-field { gap: 10px; }
-
-.arena-roster { padding: 7px 10px; border-radius: 14px; }
-.arena-roster-head { margin-bottom: 6px; }
-.arena-roster-label { font-size: 10px; }
-.arena-team-tab { font-size: 9.5px; padding: 3px 8px; }
-.arena-roster-grid { gap: 4px; }
-.arena-tile { padding: 3px 2px; gap: 1px; border-radius: 9px; }
-.arena-tile-ring { width: 26px; height: 26px; }
-.arena-tile-sprite { width: 22px; height: 22px; }
-.arena-tile-ring--add { font-size: 13px; }
-.arena-tile-name { font-size: 8px; }
-
-.arena-field-center { padding: 6px 12px; gap: 4px; border-radius: 14px; }
-.arena-field-center .weather-terrain { gap: 5px; }
-.arena-field-center .weather-terrain select,
-.arena-field-center .weather-terrain .select-menu-btn { padding: 3px 7px; font-size: 10.5px; min-width: 88px; }
-.arena-field .side-cond { padding: 6px 11px; gap: 6px; }
-.arena-field .cond-pill { padding: 3px 9px; font-size: 10px; }
+/* ---- Arena: one bar across the top ----
+   Your roster, your side's conditions, the shared battlefield, then the enemy's
+   mirrored. One row keeps the board itself high on the page. The pieces sit on a
+   single card, so their own panels go flat. */
+.arena-bar-one {
+  display: flex; align-items: stretch; gap: 12px; padding: 10px 12px;
+  background: var(--panel); border-radius: var(--radius-card); box-shadow: var(--shadow);
+  animation: hud-rise 0.4s ease both;
+}
+/* The rosters carry six tiles each, so they get the bulk of the row; the screens
+   wrap onto two short lines rather than squeezing them. */
+.arena-bar-one > .arena-roster { flex: 2 1 0; min-width: 0; background: transparent; box-shadow: none; padding: 0; }
+.arena-bar-one > .side-cond { flex: 1 1 0; min-width: 0; align-self: center; }
+.arena-bar-one > .arena-field-center { flex: none; align-self: center; background: var(--panel-3); box-shadow: none; }
+/* The enemy half mirrors, so its conditions read outward from the centre. */
+.arena-bar-one > .side-cond--foe { justify-content: flex-end; }

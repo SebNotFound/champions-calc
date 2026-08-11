@@ -485,8 +485,10 @@ export default function App() {
             </div>
           ) : (
             <>
-              {/* Management bar: your roster, a VS badge, the enemy roster. */}
-              <div className="arena-manage">
+              {/* One bar across the top, read left to right: your roster, your
+                  side's conditions, the shared battlefield, then theirs mirrored.
+                  Keeping it on a single row leaves the board itself the space. */}
+              <div className="arena-bar-one">
                 <ArenaRoster
                   side="ally"
                   label="My Team"
@@ -498,6 +500,12 @@ export default function App() {
                   onAddMember={addPlayerMember}
                   onImport={() => setPasteSide('player')}
                 />
+                {playerConditions}
+                <div className="arena-field-center">
+                  <span className="bf-label">Battlefield</span>
+                  <WeatherTerrain value={fieldState} onChange={setFieldState} />
+                </div>
+                {enemyConditions}
                 <ArenaRoster
                   side="foe"
                   label="Enemy Team"
@@ -509,15 +517,6 @@ export default function App() {
                   onAddMember={addEnemyMember}
                   onImport={() => setPasteSide('enemy')}
                 />
-              </div>
-              {/* Field bar: your side | the battlefield | the enemy side. */}
-              <div className="arena-field">
-                {playerConditions}
-                <div className="arena-field-center">
-                  <span className="bf-label">Battlefield</span>
-                  <WeatherTerrain value={fieldState} onChange={setFieldState} />
-                </div>
-                {enemyConditions}
               </div>
             </>
           )}
