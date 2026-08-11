@@ -83,7 +83,9 @@ export default function App() {
   const [classicNote, setClassicNote] = useState(
     () => localStorage.getItem('champions-calc/classic-note') !== 'seen',
   );
-  const dismissClassicNote = () => {
+  // Closing with the × only hides it for this visit; the note is worth seeing
+  // again on a later one. "Don't show this again" is what silences it for good.
+  const forgetClassicNote = () => {
     setClassicNote(false);
     localStorage.setItem('champions-calc/classic-note', 'seen');
   };
@@ -592,12 +594,15 @@ export default function App() {
               Prefer the old one? You can still use it{' '}
               <a href="/classic.html">here</a>.
             </span>
+            <button className="classic-note-never" onClick={forgetClassicNote}>
+              Don't show this again
+            </button>
           </div>
           <button
             className="classic-note-close"
-            onClick={dismissClassicNote}
-            aria-label="Dismiss"
-            title="Dismiss"
+            onClick={() => setClassicNote(false)}
+            aria-label="Close"
+            title="Close"
           >×</button>
         </div>
       )}
