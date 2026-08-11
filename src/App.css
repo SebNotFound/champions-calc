@@ -966,3 +966,28 @@
 /* Roster tiles can be dragged onto a battleground card to swap that Pokémon in. */
 .arena-tile { cursor: grab; }
 .arena-tile:active { cursor: grabbing; }
+
+/* ---- Compact arena bars ----
+   Same look, tighter boxes. The rosters and the field bar were eating a third of
+   the screen before the battleground even started, so every cell here is trimmed:
+   smaller rings, less padding, and tighter gaps between the bars themselves. */
+.app--arena { gap: 10px; }
+.arena-manage, .arena-field { gap: 10px; }
+
+.arena-roster { padding: 7px 10px; border-radius: 14px; }
+.arena-roster-head { margin-bottom: 6px; }
+.arena-roster-label { font-size: 10px; }
+.arena-team-tab { font-size: 9.5px; padding: 3px 8px; }
+.arena-roster-grid { gap: 4px; }
+.arena-tile { padding: 3px 2px; gap: 1px; border-radius: 9px; }
+.arena-tile-ring { width: 26px; height: 26px; }
+.arena-tile-sprite { width: 22px; height: 22px; }
+.arena-tile-ring--add { font-size: 13px; }
+.arena-tile-name { font-size: 8px; }
+
+.arena-field-center { padding: 6px 12px; gap: 4px; border-radius: 14px; }
+.arena-field-center .weather-terrain { gap: 5px; }
+.arena-field-center .weather-terrain select,
+.arena-field-center .weather-terrain .select-menu-btn { padding: 3px 7px; font-size: 10.5px; min-width: 88px; }
+.arena-field .side-cond { padding: 6px 11px; gap: 6px; }
+.arena-field .cond-pill { padding: 3px 9px; font-size: 10px; }
