@@ -585,7 +585,10 @@ export default function App() {
             (MIT).
           </p>
           <p className="footer-credit">
-            Made by <a href="https://github.com/SebNotFound" target="_blank" rel="noopener noreferrer">SebNotFound</a>.
+            {/* The previous look, built from the design-stadium branch and served
+                as static files under /classic (see public/classic). */}
+            Preferred the old look? <a href="/classic/">Use the classic design</a>.
+            {' '}Made by <a href="https://github.com/SebNotFound" target="_blank" rel="noopener noreferrer">SebNotFound</a>.
             If you want to help me,{' '}
             <a className="kofi-link" href="https://ko-fi.com/sebnotfound" target="_blank" rel="noopener noreferrer">buy me a Ko-fi ☕</a>
           </p>
