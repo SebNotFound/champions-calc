@@ -29,6 +29,7 @@ export function BattleState({ boosts, onBoosts }: Props) {
 
   return (
     <div className="battle-state">
+      <span className="block-label">Battle Boosts</span>
       <div className="boost-row">
         {BOOST_STATS.map(({ key, label }) => {
           const v = boosts[key] ?? 0;

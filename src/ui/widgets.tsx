@@ -1,9 +1,11 @@
 /**
  * Small, presentational building blocks shared across the editors.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { listSpeciesOptions, listMoves, listItems, listAbilities, spriteUrl, baseSpriteUrl } from '../champions';
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { createPortal } from 'react-dom';
+import { listSpeciesOptions, listMoves, listItems, listAbilities, spriteUrl, baseSpriteUrl, moveInfo } from '../champions';
 import type { DamageSummary } from '../champions';
+import { isTauri, isAndroidOverlay } from './tauri';
 
 /**
  * A Pokémon sprite that survives the flaky remote CDN.
@@ -100,14 +102,22 @@ interface ComboboxProps {
 }
 
 /**
- * A text input backed by a shared datalist (type-ahead over big lists).
+ * A text input with type-ahead over a big list.
  *
- * NB: we deliberately do NOT set `autocomplete="off"`. Chrome suppresses the
- * <datalist> suggestion dropdown entirely when autocomplete is off, which made
- * these pickers type-only (you had to type the whole name). Leaving it unset
- * lets the datalist show.
+ * On the website it uses the native `<datalist>` (fast, and we deliberately do NOT
+ * set `autocomplete="off"`, which would suppress the dropdown). In the desktop
+ * overlay the native datalist popup is a separate OS window that renders BEHIND
+ * the always-on-top overlay (so no suggestions show), so there we draw our own
+ * suggestion list in the DOM instead. The website behaviour is unchanged.
  */
-export function Combobox({ value, onChange, listId, placeholder, className, ...rest }: ComboboxProps) {
+export function Combobox(props: ComboboxProps) {
+  // Both overlays render the suggestion list in the DOM: on the desktop (Tauri)
+  // the native datalist popup hides behind the always-on-top window; in the
+  // Android system-overlay WebView native popups don't open reliably at all.
+  return isTauri() || isAndroidOverlay() ? <ComboboxMenu {...props} /> : <ComboboxNative {...props} />;
+}
+
+function ComboboxNative({ value, onChange, listId, placeholder, className, ...rest }: ComboboxProps) {
   return (
     <input
       className={className}
@@ -121,34 +131,282 @@ export function Combobox({ value, onChange, listId, placeholder, className, ...r
   );
 }
 
+/** Up to this many suggestions are shown. */
+const CBX_MAX = 8;
+
+/** Overlay-only: a custom suggestion dropdown drawn in the DOM (and portalled to
+ *  the body with fixed positioning, so it floats above the always-on-top window
+ *  and is never clipped by a scrolling panel). Reads the same shared `<datalist>`
+ *  as its option source, so call sites don't change. */
+function ComboboxMenu({ value, onChange, listId, placeholder, className, ...rest }: ComboboxProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number } | null>(null);
+
+  const matches = useMemo(() => {
+    const q = value.trim().toLowerCase();
+    if (!q) return [];
+    const dl = document.getElementById(listId) as HTMLDataListElement | null;
+    if (!dl) return [];
+    const starts: string[] = [];
+    const includes: string[] = [];
+    const opts = dl.options;
+    for (let i = 0; i < opts.length && starts.length < CBX_MAX; i++) {
+      const v = opts[i].value;
+      const lv = v.toLowerCase();
+      if (lv.startsWith(q)) starts.push(v);
+      else if (includes.length < CBX_MAX && lv.includes(q)) includes.push(v);
+    }
+    return [...starts, ...includes].slice(0, CBX_MAX);
+  }, [value, listId, open]);
+
+  const place = () => {
+    const r = inputRef.current?.getBoundingClientRect();
+    if (r) setRect({ left: r.left, top: r.bottom, width: r.width });
+  };
+
+  // Keep the menu glued to the input while scrolling/resizing.
+  useEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open]);
+
+  const choose = (v: string) => { onChange(v); setOpen(false); };
+
+  const onKeyDown = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setOpen(true); setActive((a) => Math.min(a + 1, matches.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)); }
+    else if (e.key === 'Enter' && open && matches[active]) { e.preventDefault(); choose(matches[active]); }
+    else if (e.key === 'Escape') { setOpen(false); }
+  };
+
+  return (
+    <>
+      <input
+        ref={inputRef}
+        className={className}
+        value={value}
+        placeholder={placeholder}
+        spellCheck={false}
+        autoComplete="off"
+        onChange={(e) => { onChange(e.target.value); setOpen(true); setActive(0); }}
+        onFocus={() => setOpen(true)}
+        onBlur={() => window.setTimeout(() => setOpen(false), 120)}
+        onKeyDown={onKeyDown}
+        {...rest}
+      />
+      {open && rect && matches.length > 0 && createPortal(
+        <ul className="cbx-list" style={{ left: rect.left, top: rect.top, width: rect.width }}>
+          {matches.map((m, i) => (
+            <li
+              key={m}
+              className={`cbx-opt${i === active ? ' active' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); choose(m); }}
+              onMouseEnter={() => setActive(i)}
+            >
+              {m}
+            </li>
+          ))}
+        </ul>,
+        document.body,
+      )}
+    </>
+  );
+}
+
+export interface SelectOption {
+  value: string;
+  label: string;
+}
+
+interface SelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: SelectOption[];
+  className?: string;
+  disabled?: boolean;
+  'aria-label'?: string;
+}
+
+/**
+ * A dropdown over a fixed set of options.
+ *
+ * On the website it's a native `<select>`. In BOTH overlays it's a custom DOM
+ * menu instead: a native `<select>` opens its list in a separate OS popup window,
+ * which renders behind the always-on-top desktop overlay and does not open at all
+ * from the Android system-overlay WebView. The custom menu is drawn in the page
+ * (portalled to the body), so it works in both. The website is unchanged.
+ */
+export function Select(props: SelectProps) {
+  return isTauri() || isAndroidOverlay() ? <SelectMenu {...props} /> : <SelectNative {...props} />;
+}
+
+function SelectNative({ value, onChange, options, className, disabled, ...rest }: SelectProps) {
+  return (
+    <select
+      className={className}
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+      {...rest}
+    >
+      {options.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+    </select>
+  );
+}
+
+function SelectMenu({ value, onChange, options, className, disabled, ...rest }: SelectProps) {
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const [open, setOpen] = useState(false);
+  const [rect, setRect] = useState<{ left: number; top: number; width: number } | null>(null);
+
+  const current = options.find((o) => o.value === value);
+
+  const place = () => {
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) setRect({ left: r.left, top: r.bottom, width: r.width });
+  };
+
+  useEffect(() => {
+    if (!open) return;
+    place();
+    window.addEventListener('scroll', place, true);
+    window.addEventListener('resize', place);
+    return () => {
+      window.removeEventListener('scroll', place, true);
+      window.removeEventListener('resize', place);
+    };
+  }, [open]);
+
+  const choose = (v: string) => { onChange(v); setOpen(false); };
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        className={`select-menu-btn${className ? ` ${className}` : ''}`}
+        disabled={disabled}
+        onClick={() => { if (!disabled) setOpen((o) => !o); }}
+        onBlur={() => window.setTimeout(() => setOpen(false), 150)}
+        {...rest}
+      >
+        <span className="select-menu-label">{current?.label ?? ''}</span>
+        <span className="select-menu-caret" aria-hidden>▾</span>
+      </button>
+      {open && rect && createPortal(
+        <ul className="cbx-list" style={{ left: rect.left, top: rect.top, width: rect.width }}>
+          {options.map((o) => (
+            <li
+              key={o.value}
+              className={`cbx-opt${o.value === value ? ' active' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); choose(o.value); }}
+            >
+              {o.label}
+            </li>
+          ))}
+        </ul>,
+        document.body,
+      )}
+    </>
+  );
+}
+
 /** A single move's damage result (a damage summary tagged with its move name). */
 export type MoveResult = DamageSummary & { move: string };
 
-/** One damage line: move name, bar, % range and KO chance. Shared by the
- *  offensive (DefenderCard) and incoming (IncomingPanel) readouts. */
+/** Short KO tag + its colour, derived from the KO-chance text and the max %:
+ *  OHKO -> danger, 2-3HKO -> warn, 4+HKO / low -> safe, no damage -> nothing. */
+function koTag(koChance: string | undefined, maxPercent: number): { label: string; color: string } | null {
+  if (maxPercent <= 0) return null;
+  const s = koChance ?? '';
+  let n = 0;
+  if (/OHKO/.test(s)) n = 1;
+  else { const m = s.match(/(\d+)HKO/); if (m) n = Number(m[1]); }
+  if (n === 0) return { label: 'safe', color: 'var(--safe)' };
+  return { label: n === 1 ? 'OHKO' : `${n}HKO`, color: n === 1 ? 'var(--danger)' : n <= 3 ? 'var(--warn)' : 'var(--safe)' };
+}
+
+/** One damage line: a type dot, the move, its % (KO-coloured), a KO badge and a
+ *  green->red HP-style bar. Shared by the offensive and incoming readouts. */
 export function ResultRow({ r }: { r: MoveResult }) {
+  const info = moveInfo(r.move);
+  const ko = koTag(r.koChance, r.maxPercent);
   return (
-    <div className="result-row">
+    <div className={`result-row${r.maxPercent <= 0 ? ' result-row--status' : ''}`}>
+      {info ? <TypeIcon type={info.type} className="result-type" /> : <span className="result-type result-type--none" aria-hidden />}
       <span className="result-move" title={r.move}>{r.move}</span>
-      <DamageBar minPercent={r.minPercent} maxPercent={r.maxPercent} />
-      <span className="result-pct">{r.minPercent}–{r.maxPercent}%</span>
-      {r.koChance && <span className="result-ko">{r.koChance}</span>}
+      {r.maxPercent > 0 ? (
+        <span className="result-pct" style={ko ? { color: ko.color } : undefined}>{r.minPercent}–{r.maxPercent}%</span>
+      ) : (
+        <span className="result-pct result-status">status</span>
+      )}
+      {ko && <span className="result-ko" style={{ backgroundColor: ko.color }}>{ko.label}</span>}
+      {r.maxPercent > 0 && <DamageBar minPercent={r.minPercent} maxPercent={r.maxPercent} />}
     </div>
   );
 }
 
-/** Official-ish Pokémon type colours, for type pills. */
+/** Pokédex-redesign type colours (badges, move end-caps, tinted headers). */
 const TYPE_COLORS: Record<string, string> = {
-  Normal: '#9fa19f', Fire: '#e62829', Water: '#2980ef', Electric: '#fac000',
-  Grass: '#3fa129', Ice: '#3dcef3', Fighting: '#ff8000', Poison: '#9141cb',
-  Ground: '#915121', Flying: '#81b9ef', Psychic: '#ef4179', Bug: '#91a119',
-  Rock: '#afa981', Ghost: '#704170', Dragon: '#5060e1', Dark: '#624d4e',
-  Steel: '#60a1b8', Fairy: '#ef70ef',
+  Normal: '#a0a29f', Fire: '#ee8130', Water: '#5aa9e6', Electric: '#f2c944',
+  Grass: '#63bc5a', Ice: '#74cec0', Fighting: '#c0392b', Poison: '#a34fa0',
+  Ground: '#dbaf5a', Flying: '#8fa9e8', Psychic: '#f56aa0', Bug: '#a3b83a',
+  Rock: '#b6a24a', Ghost: '#6c5aa6', Dragon: '#7a5df0', Dark: '#5a5366',
+  Steel: '#7c8b9c', Fairy: '#e68fb8',
 };
+
+/** The colour for one type (falls back to a neutral grey). */
+export function typeHex(type: string): string {
+  return TYPE_COLORS[type] ?? '#a0a29f';
+}
+
+/**
+ * A type-tinted gradient for a Pokémon's card header, keyed by its types: the
+ * first type flows into the second (or into a darker shade of itself when
+ * mono-typed), the same diagonal wash used across the redesign's headers.
+ */
+export function typeGradientStyle(types: string[]): CSSProperties {
+  const c1 = typeHex(types[0] ?? 'Normal');
+  if (types.length < 2) {
+    return { background: `linear-gradient(120deg, ${c1}, color-mix(in srgb, ${c1} 64%, #2a2431))` };
+  }
+  const c2 = typeHex(types[1]);
+  return {
+    background: `linear-gradient(120deg, ${c1}, color-mix(in srgb, ${c1} 45%, ${c2}) 55%, ${c2})`,
+  };
+}
+
+/**
+ * The type's icon: a coloured circular badge (disc + white glyph) from the
+ * partywhale/pokemon-type-icons set (MIT), bundled in public/type-icons/.
+ */
+export function TypeIcon({ type, className }: { type: string; className?: string }) {
+  if (!type) return null;
+  return (
+    <img
+      className={`type-icon${className ? ` ${className}` : ''}`}
+      src={`/type-icons/${type.toLowerCase()}.svg`}
+      alt=""
+      aria-hidden
+      width={16}
+      height={16}
+      draggable={false}
+    />
+  );
+}
 
 export function TypeBadge({ type }: { type: string }) {
   return (
     <span className="type-badge" style={{ backgroundColor: TYPE_COLORS[type] ?? '#777' }}>
+      <TypeIcon type={type} />
       {type}
     </span>
   );

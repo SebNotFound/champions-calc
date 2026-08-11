@@ -9,6 +9,7 @@
  */
 import { makeField } from '../champions';
 import type { Field } from '@smogon/calc';
+import { Select } from './widgets';
 
 type Weather = 'Sun' | 'Rain' | 'Sand' | 'Snow';
 type Terrain = 'Electric' | 'Grassy' | 'Psychic' | 'Misty';
@@ -75,29 +76,33 @@ export function WeatherTerrain({ value, onChange }: { value: FieldState; onChang
     <div className="weather-terrain">
       <label className="field">
         <span>Weather</span>
-        <select
+        <Select
           value={value.weather ?? ''}
-          onChange={(e) => patch({ weather: (e.target.value || undefined) as Weather | undefined })}
-        >
-          <option value="">None</option>
-          <option value="Sun">Sun</option>
-          <option value="Rain">Rain</option>
-          <option value="Sand">Sand</option>
-          <option value="Snow">Snow</option>
-        </select>
+          onChange={(v) => patch({ weather: (v || undefined) as Weather | undefined })}
+          options={[
+            { value: '', label: 'None' },
+            { value: 'Sun', label: 'Sun' },
+            { value: 'Rain', label: 'Rain' },
+            { value: 'Sand', label: 'Sand' },
+            { value: 'Snow', label: 'Snow' },
+          ]}
+          aria-label="Weather"
+        />
       </label>
       <label className="field">
         <span>Terrain</span>
-        <select
+        <Select
           value={value.terrain ?? ''}
-          onChange={(e) => patch({ terrain: (e.target.value || undefined) as Terrain | undefined })}
-        >
-          <option value="">None</option>
-          <option value="Electric">Electric</option>
-          <option value="Grassy">Grassy</option>
-          <option value="Psychic">Psychic</option>
-          <option value="Misty">Misty</option>
-        </select>
+          onChange={(v) => patch({ terrain: (v || undefined) as Terrain | undefined })}
+          options={[
+            { value: '', label: 'None' },
+            { value: 'Electric', label: 'Electric' },
+            { value: 'Grassy', label: 'Grassy' },
+            { value: 'Psychic', label: 'Psychic' },
+            { value: 'Misty', label: 'Misty' },
+          ]}
+          aria-label="Terrain"
+        />
       </label>
     </div>
   );
@@ -119,27 +124,29 @@ export function SideConditions({
   helpingHand?: boolean;
   onHelpingHand?: (v: boolean) => void;
 }) {
+  // Each condition is a toggle pill (lit in the side's colour when on), which is
+  // both more compact and closer to the game's own HUD than a checkbox list.
+  const pill = (on: boolean, label: string, toggle: () => void) => (
+    <button
+      key={label}
+      type="button"
+      className={`cond-pill${on ? ' on' : ''}`}
+      aria-pressed={on}
+      onClick={toggle}
+    >
+      {label}
+    </button>
+  );
+
   return (
     <div className={`side-cond side-cond--${variant}`}>
       <div className="side-cond-head">{title}</div>
-      {onHelpingHand && (
-        <label className="cond-row">
-          <input type="checkbox" checked={!!helpingHand} onChange={(e) => onHelpingHand(e.target.checked)} />
-          <span>Helping Hand</span>
-        </label>
-      )}
-      <label className="cond-row">
-        <input type="checkbox" checked={screens.reflect} onChange={(e) => onScreens({ reflect: e.target.checked })} />
-        <span>Reflect</span>
-      </label>
-      <label className="cond-row">
-        <input type="checkbox" checked={screens.lightScreen} onChange={(e) => onScreens({ lightScreen: e.target.checked })} />
-        <span>Light Screen</span>
-      </label>
-      <label className="cond-row">
-        <input type="checkbox" checked={screens.auroraVeil} onChange={(e) => onScreens({ auroraVeil: e.target.checked })} />
-        <span>Aurora Veil</span>
-      </label>
+      <div className="cond-pills">
+        {onHelpingHand && pill(!!helpingHand, 'Helping Hand', () => onHelpingHand(!helpingHand))}
+        {pill(screens.reflect, 'Reflect', () => onScreens({ reflect: !screens.reflect }))}
+        {pill(screens.lightScreen, 'Light Screen', () => onScreens({ lightScreen: !screens.lightScreen }))}
+        {pill(screens.auroraVeil, 'Aurora Veil', () => onScreens({ auroraVeil: !screens.auroraVeil }))}
+      </div>
     </div>
   );
 }

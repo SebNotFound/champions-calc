@@ -8,7 +8,7 @@
  * +/- stats, and a Mega Evolution holds no item (the Omni Ring replaces it).
  */
 import { useEffect, useId, useState, type DragEvent } from 'react';
-import { Combobox, TypeBadge, DATALIST, Sprite } from './widgets';
+import { Combobox, Select, TypeBadge, TypeIcon, DATALIST, Sprite, typeGradientStyle, typeHex } from './widgets';
 import { StatSpreadEditor } from './StatSpreadEditor';
 import { BattleState } from './BattleState';
 import {
@@ -20,8 +20,42 @@ import {
   getSpeciesTypes,
   getMega,
   autofillSet,
+  moveInfo,
 } from '../champions';
 import type { ChampionsSet, NatureName, StatTable } from '../champions';
+
+/**
+ * One move as a "plate": the editable name on the left with its category / PP /
+ * base power, and a type-coloured end-cap on the right (both derived live from
+ * the move's dex data as you type).
+ */
+function MovePlate({ value, onChange, listId }: { value: string; onChange: (v: string) => void; listId: string }) {
+  const info = moveInfo(value);
+  return (
+    <div className="move-plate">
+      <div className="move-plate-main">
+        <Combobox className="move-name" value={value} onChange={onChange} listId={listId} placeholder="Move…" />
+        {info && (
+          <span className="move-meta">
+            <span className={`move-cat move-cat--${info.category.toLowerCase()}`}>{info.category}</span>
+            {` · PP ${info.pp}`}{info.basePower ? ` · ${info.basePower} BP` : ''}
+          </span>
+        )}
+      </div>
+      {/* The end-cap is the type icon alone: the cards are narrow in the classic
+          three-up row, and spelling the type out there ate the move's name. */}
+      {info && (
+        <span
+          className="move-cap"
+          style={{ background: `color-mix(in srgb, ${typeHex(info.type)} 15%, transparent)` }}
+          title={info.type}
+        >
+          <TypeIcon type={info.type} className="move-cap-icon" />
+        </span>
+      )}
+    </div>
+  );
+}
 
 const NATURE_NAMES = (Object.keys(NATURES) as NatureName[]).sort();
 
@@ -40,16 +74,20 @@ interface Props {
   set: ChampionsSet;
   onChange: (next: ChampionsSet) => void;
   role: 'attacker' | 'defender';
-  onRemove?: () => void;
   title?: string;
   /** When set, the header row acts as a drag handle (used to reorder targets). */
   draggable?: boolean;
   onHeaderDragStart?: (e: DragEvent) => void;
   onHeaderDragEnd?: (e: DragEvent) => void;
+  /** Collapse the body (nature/moves/stats/boosts) behind an "Edit set" toggle. */
+  collapsibleBody?: boolean;
+  /** Label for the collapse toggle. */
+  summaryLabel?: string;
 }
 
 export function PokemonEditor({
-  set, onChange, role, onRemove, title, draggable, onHeaderDragStart, onHeaderDragEnd,
+  set, onChange, role, title, draggable, onHeaderDragStart, onHeaderDragEnd,
+  collapsibleBody, summaryLabel,
 }: Props) {
   const mega = set.megaForme ? getMega(set.megaForme) : undefined;
 
@@ -110,82 +148,58 @@ export function PokemonEditor({
     patch({ moves });
   };
 
-  return (
-    <div className={`mon-editor mon-editor--${role}`}>
-      <div
-        className={`mon-editor-head${draggable ? ' mon-editor-head--drag' : ''}`}
-        draggable={draggable}
-        onDragStart={onHeaderDragStart}
-        onDragEnd={onHeaderDragEnd}
-        title={draggable ? 'Drag to swap targets' : undefined}
-      >
-        <Sprite className="mon-sprite" species={set.megaForme ?? set.species} />
-        <div className="mon-title-line">
-          {title && <span className="mon-role">{title}</span>}
-          <div className="mon-types">
-            {types.map((t) => <TypeBadge key={t} type={t} />)}
-          </div>
-        </div>
-        {onRemove && (
-          <button
-            className="icon-btn"
-            draggable={false}
-            onClick={onRemove}
-            aria-label="Remove"
-            title="Remove"
-          >×</button>
-        )}
-      </div>
-
-      {/* Species name + the nature/item/ability/status grid are grouped so arena
-          mode can sit them as one column beside the stat spread (in the normal
-          layout they just stack as before). */}
+  // The card body (identity + stats + moves + boosts). A fragment, so when it's
+  // NOT collapsed the sections stay direct children of .mon-editor (arena mode's
+  // grid relies on that); when collapsed they sit inside the <details> instead.
+  const body = (
+    <>
+      {/* The nature/item/ability/status grid (species now lives in the header). */}
       <div className="mon-identity">
-      <Combobox
-        className="species-input"
-        value={set.megaForme ?? set.species}
-        onChange={onSpecies}
-        listId={DATALIST.species}
-        placeholder="Species or Mega…"
-        aria-label="Species"
-      />
-
       <div className="field-grid">
         <label className="field">
           <span>Nature</span>
-          <select value={set.nature} onChange={(e) => patch({ nature: e.target.value as NatureName })}>
-            {NATURE_NAMES.map((n) => (
-              <option key={n} value={n}>{n} ({describeNature(n)})</option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>Item</span>
-          <input
-            value={mega ? '' : (set.item ?? '')}
-            onChange={(e) => patch({ item: e.target.value || undefined })}
-            list={DATALIST.items}
-            placeholder={mega ? 'No item (Mega)' : 'Item…'}
-            disabled={!!mega}
-            spellCheck={false}
+          <Select
+            value={set.nature}
+            onChange={(v) => patch({ nature: v as NatureName })}
+            options={NATURE_NAMES.map((n) => ({ value: n, label: `${n} (${describeNature(n)})` }))}
+            aria-label="Nature"
           />
         </label>
         <label className="field">
+          <span>Item</span>
+          {mega ? (
+            <input value="" placeholder="No item (Mega)" disabled spellCheck={false} />
+          ) : (
+            <Combobox
+              value={set.item ?? ''}
+              onChange={(v) => patch({ item: v || undefined })}
+              listId={DATALIST.items}
+              placeholder="Item…"
+              aria-label="Item"
+            />
+          )}
+        </label>
+        <label className="field">
           <span>Ability</span>
-          <select
+          <Select
             value={set.ability ?? ''}
-            onChange={(e) => patch({ ability: e.target.value || undefined })}
+            onChange={(v) => patch({ ability: v || undefined })}
+            options={[
+              ...(set.ability ? [] : [{ value: '', label: '—' }]),
+              ...abilityOptions.map((a) => ({ value: a, label: a })),
+            ]}
             disabled={!!mega}
-          >
-            {!set.ability && <option value="">—</option>}
-            {abilityOptions.map((a) => <option key={a} value={a}>{a}</option>)}
-          </select>
+            aria-label="Ability"
+          />
         </label>
         <label className="field">
           <span>Status</span>
-          <select value={set.status ?? ''} onChange={(e) => patch({ status: e.target.value || undefined })}>
-            {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
+          <Select
+            value={set.status ?? ''}
+            onChange={(v) => patch({ status: v || undefined })}
+            options={STATUSES.map(([v, l]) => ({ value: v, label: l }))}
+            aria-label="Status"
+          />
         </label>
       </div>
       </div>
@@ -200,19 +214,17 @@ export function PokemonEditor({
         boosts={set.boosts}
       />
 
-      {/* Moves are shown for both sides now: the attacker's drive the damage to
-          each target, and a defender's drive the "incoming" damage back to your
-          active Pokémon (see DefenderCard). */}
+      {/* Moves: the attacker's drive damage to each target; a defender's drive the
+          incoming damage back to your active Pokémon (see DefenderCard). */}
       <div className="moves-block">
         <span className="block-label">Moves</span>
         <div className="moves-grid">
           {[0, 1, 2, 3].map((i) => (
-            <Combobox
+            <MovePlate
               key={i}
               value={set.moves?.[i] ?? ''}
               onChange={(v) => setMove(i, v)}
               listId={movesList}
-              placeholder={`Move ${i + 1}…`}
             />
           ))}
         </div>
@@ -227,6 +239,50 @@ export function PokemonEditor({
         boosts={set.boosts ?? {}}
         onBoosts={(boosts) => patch({ boosts })}
       />
+    </>
+  );
+
+  return (
+    <div className={`mon-editor mon-editor--${role}`}>
+      {/* Type-tinted gradient header: the sprite in a radial Poké-ring, the
+          species (editable) as the title, and the type badges. The header's
+          background is keyed by the Pokémon's types. */}
+      <div
+        className={`mon-editor-head${draggable ? ' mon-editor-head--drag' : ''}`}
+        style={typeGradientStyle(types)}
+        draggable={draggable}
+        onDragStart={onHeaderDragStart}
+        onDragEnd={onHeaderDragEnd}
+        title={draggable ? 'Drag to swap targets' : undefined}
+      >
+        <div className="poke-ring">
+          <Sprite className="mon-sprite" species={set.megaForme ?? set.species} />
+        </div>
+        <div className="mon-title-line">
+          {title && <span className="mon-role">{title}</span>}
+          <Combobox
+            className="mon-name-input"
+            value={set.megaForme ?? set.species}
+            onChange={onSpecies}
+            listId={DATALIST.species}
+            placeholder="Species or Mega…"
+            aria-label="Species"
+          />
+          <div className="mon-types">
+            {types.map((t) => <TypeBadge key={t} type={t} />)}
+          </div>
+        </div>
+      </div>
+
+      {collapsibleBody ? (
+        <details className="edit-set">
+          <summary className="edit-set-summary">
+            {summaryLabel ?? 'Edit set'}
+            <svg className="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
+          </summary>
+          {body}
+        </details>
+      ) : body}
     </div>
   );
 }

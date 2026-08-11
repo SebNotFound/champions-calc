@@ -6,9 +6,15 @@
  * cards in the centre).
  */
 import { TeamSlots } from './TeamSlots';
-import { Sprite } from './widgets';
-import { getMega, MAX_TEAM_SIZE } from '../champions';
+import { Sprite, typeHex } from './widgets';
+import { getMega, getSpeciesTypes, MAX_TEAM_SIZE } from '../champions';
 import type { Team } from '../champions';
+
+/** A faint radial ring tint keyed by a Pokémon's primary type (the Poké-ring look). */
+function ringTint(species: string, megaForme?: string): string {
+  const types = megaForme ? (getMega(megaForme)?.types ?? []) : (getSpeciesTypes(species) ?? []);
+  return `radial-gradient(circle, #fff 34%, color-mix(in srgb, ${typeHex(types[0] ?? 'Normal')} 24%, #fff))`;
+}
 
 interface Props {
   title: string;
@@ -24,6 +30,8 @@ interface Props {
   onImportText: () => void;
   onImportPhoto: () => void;
   onImportReport?: () => void;
+  /** Overlay only: capture this side from the device via adb. */
+  onCapture?: () => void;
   onAddMember: () => void;
   onRemoveMember: (i: number) => void;
   /** Swap two members by index — enables dragging a list member onto an active
@@ -55,6 +63,7 @@ export function TeamColumn(props: Props) {
         onImportText={props.onImportText}
         onImportPhoto={props.onImportPhoto}
         onImportReport={props.onImportReport}
+        onCapture={props.onCapture}
       />
       <div className="member-list">
         {team.members.map((m, i) => {
@@ -77,7 +86,9 @@ export function TeamColumn(props: Props) {
               } : undefined}
               title={reorderable ? 'Drag onto an active target to bring it to the front' : undefined}
             >
-              <Sprite className="member-sprite" species={m.megaForme ?? m.species} />
+              <span className="member-ring" style={{ background: ringTint(m.species, m.megaForme) }}>
+                <Sprite className="member-sprite" species={m.megaForme ?? m.species} />
+              </span>
               <span className="member-name">{label}</span>
               {team.members.length > 1 && (
                 <button

@@ -12,12 +12,13 @@
  * The free on-device engine is the default; "More precise" switches to Claude
  * vision (needs an API key). The engine choice and key are remembered.
  */
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { LocalRecognizer, ClaudeRecognizer } from '../recognition';
 import type { RecognitionResult, CropRect } from '../recognition';
 import { spriteUrl, resolveSpeciesName, getSpeciesBaseStats } from '../champions';
 import { Combobox, DATALIST } from './widgets';
 import { CropBox } from './CropBox';
+import { isTauri, isAndroidOverlay, captureDeviceScreen } from './tauri';
 
 type Side = 'player' | 'enemy';
 
@@ -26,11 +27,13 @@ interface Props {
   side: Side | null;
   onClose: () => void;
   onImport: (side: Side, species: string[]) => void;
+  /** Overlay only: when the dialog opens, immediately capture from the device. */
+  autoCapture?: boolean;
 }
 
 const MAX_TEAM = 6;
 
-export function ImportDialog({ side, onClose, onImport }: Props) {
+export function ImportDialog({ side, onClose, onImport, autoCapture }: Props) {
   const [image, setImage] = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [precise, setPrecise] = useState(() => localStorage.getItem('champions-calc/recognizer') === 'claude');
@@ -43,6 +46,19 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
   const [cropping, setCropping] = useState(false);
   const [cropBox, setCropBox] = useState<CropRect | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const autoRan = useRef(false);
+
+  // Overlay "Capture" button: as soon as the dialog opens in capture mode, grab
+  // the device once (guarded so it doesn't re-fire on re-render). captureFromDevice
+  // is defined below; the effect only runs it after commit, so the reference is safe.
+  useEffect(() => {
+    if (!side) { autoRan.current = false; return; }
+    if (autoCapture && !autoRan.current) {
+      autoRan.current = true;
+      void captureFromDevice();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [side, autoCapture]);
 
   if (!side) return null;
 
@@ -53,12 +69,33 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
 
   const reset = () => { setResult(null); setDraft([]); setManual(''); setCropping(false); setCropBox(null); };
 
-  const acceptImage = (file: File | null | undefined) => {
+  const acceptImage = (file: Blob | null | undefined) => {
     if (!file) return;
     setError(null);
     reset();
     setImage(file);
     setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  // Overlay only: grab the screen (desktop via adb, Android via MediaProjection)
+  // and run the same recognizer straight away. Inert on the website.
+  const captureFromDevice = async () => {
+    setBusy(true);
+    setError(null);
+    reset();
+    try {
+      const blob = await captureDeviceScreen();
+      setImage(blob);
+      setPreviewUrl(URL.createObjectURL(blob));
+      const recognizer = precise ? new ClaudeRecognizer(apiKey) : new LocalRecognizer();
+      const res = await recognizer.recognize(blob, side);
+      setResult(res);
+      setDraft((isPlayer ? res.player : res.enemy).map((d) => d.species));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   };
 
   // Open the manual cropper, pre-filled with the auto-detected column if we can
@@ -195,6 +232,13 @@ export function ImportDialog({ side, onClose, onImport }: Props) {
           </div>
         ) : (
           <>
+            {(isTauri() || isAndroidOverlay()) && (
+              <button className="primary capture-device" onClick={captureFromDevice} disabled={busy}>
+                {busy
+                  ? 'Reading the screen…'
+                  : isAndroidOverlay() ? 'Capture the screen' : 'Capture from device (adb)'}
+              </button>
+            )}
             <div
               className="dropzone"
               onClick={() => fileInputRef.current?.click()}

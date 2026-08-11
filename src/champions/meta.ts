@@ -35,6 +35,22 @@ export function speciesAbilities(species: string): string[] {
   return Array.from(new Set([a[0], a[1], a.H, a.S].filter((x): x is string => !!x)));
 }
 
+/** Display metadata for one move, for the redesign's move plates + damage rows. */
+export interface MoveInfo {
+  type: string;
+  category: 'Physical' | 'Special' | 'Status';
+  pp: number;
+  basePower: number;
+}
+
+/** Look up a move's type / category / PP / base power (undefined if unknown). */
+export function moveInfo(name: string): MoveInfo | undefined {
+  if (!name || !name.trim()) return undefined;
+  const m = metaGen.moves.get(name);
+  if (!m) return undefined;
+  return { type: m.type, category: m.category, pp: m.pp, basePower: m.basePower };
+}
+
 // Learnsets are loaded lazily (and are large), so cache the resolved move lists.
 const moveCache = new Map<string, string[]>();
 

@@ -23,6 +23,7 @@
  */
 import { emptySpread, STAT_KEYS, MAX_SP_PER_STAT, MAX_TOTAL_SP } from './stats';
 import { resolveSpeciesName } from './engine';
+import { applyMegaItem } from './data/megas';
 import type { ChampionsSet, NatureName, StatKey, StatSpread, StatTable } from './types';
 
 const EV_LABELS: Record<string, StatKey> = {
@@ -133,5 +134,8 @@ export function parseShowdownTeam(text: string): ChampionsSet[] {
     .trim()
     .split(/\n\s*\n/)
     .map(parseSet)
-    .filter((s): s is ChampionsSet => s !== null);
+    .filter((s): s is ChampionsSet => s !== null)
+    // A mon holding a mega item (Mega Gem / Orb, or a real Mega Stone) comes in
+    // already mega-evolved.
+    .map(applyMegaItem);
 }

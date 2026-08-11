@@ -28,7 +28,6 @@ export interface Battler {
 interface Props {
   set: ChampionsSet;
   onChange: (next: ChampionsSet) => void;
-  onRemove: () => void;
   index: number;
   onSwap: (from: number, to: number) => void;
   /** 'attacker' = your side (cyan), 'defender' = the enemy side (rose). */
@@ -39,9 +38,12 @@ interface Props {
   attackers: Battler[];
   /** Field for attacker -> this card (incoming for your side, outgoing for theirs). */
   field: Field;
+  /** When set (phone overlay), show a tap picker to choose which team member sits
+   *  in this active slot — the touch-friendly replacement for drag-to-swap. */
+  roster?: ChampionsSet[];
 }
 
-export function ArenaCard({ set, onChange, onRemove, index, onSwap, role, side, title, attackers, field }: Props) {
+export function ArenaCard({ set, onChange, index, onSwap, role, side, title, attackers, field, roster }: Props) {
   const [tab, setTab] = useState(0);
 
   const defender = useMemo<Pokemon | null>(() => {
@@ -68,11 +70,28 @@ export function ArenaCard({ set, onChange, onRemove, index, onSwap, role, side, 
         if (!Number.isNaN(from)) onSwap(from, index);
       }}
     >
+      {roster && roster.length > 1 && (
+        <div className="arena-pick" role="group" aria-label="Pokémon actif de cet emplacement">
+          {roster.map((m, j) => (
+            <button
+              key={j}
+              type="button"
+              className={`arena-pick-chip${j === index ? ' active' : ''}`}
+              onClick={() => onSwap(index, j)}
+              title={m.megaForme ?? m.species}
+              aria-label={m.megaForme ?? m.species}
+              aria-pressed={j === index}
+            >
+              <Sprite species={m.megaForme ?? m.species} />
+            </button>
+          ))}
+        </div>
+      )}
+
       <PokemonEditor
         set={set}
         onChange={onChange}
         role={role}
-        onRemove={onRemove}
         title={title}
         draggable
         onHeaderDragStart={(e) => {

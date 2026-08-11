@@ -13,76 +13,73 @@
 @keyframes header-flow { from { background-position: 0 0; } to { background-position: 520px 0; } }
 
 
-/* ---- Header banner: one row — brand | weather/terrain (centered) | controls ---- */
+/* ---- Header: brand (EXO) | Classic/Arena toggle | controls ----
+   A three-column grid so the toggle sits dead centre of the header regardless of
+   how wide the brand and the controls are. */
 .app-header {
-  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 16px;
-  padding: 11px 18px; position: relative; overflow: hidden;
-  background:
-    linear-gradient(110deg, var(--panel-glass) 0%, var(--panel2-glass) 60%, var(--panel-glass) 100%);
-  -webkit-backdrop-filter: blur(7px) saturate(1.08);
-  backdrop-filter: blur(7px) saturate(1.08);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px;
+  padding: 12px 16px;
+  background: var(--panel);
+  border-radius: var(--radius-card);
   box-shadow: var(--shadow);
   animation: hud-rise 0.4s ease both;
 }
-.app-header > * { position: relative; z-index: 1; }
-.weather-terrain { display: flex; align-items: flex-end; gap: 14px; justify-self: center; }
-.weather-terrain .field { min-width: 130px; }
-.header-right { display: flex; align-items: center; gap: 10px; justify-self: end; }
-@media (max-width: 760px) {
-  .app-header { grid-template-columns: 1fr auto; }
-  .weather-terrain { grid-column: 1 / -1; justify-self: start; flex-wrap: wrap; }
+.app-header > .brand { justify-self: start; }
+.app-header > .header-right { justify-self: end; }
+/* Narrow screens can't hold three columns, so wrap them instead. */
+@media (max-width: 700px) {
+  .app-header { display: flex; flex-wrap: wrap; justify-content: space-between; }
 }
-/* A moving energy line across the top edge — the one "alive" flourish. */
-.app-header::before {
-  content: ''; position: absolute; inset: 0 0 auto 0; height: 2px;
-  background-image: linear-gradient(90deg, transparent, var(--ally) 30%, #cdf6ff 50%, var(--foe) 70%, transparent);
-  background-size: 520px 100%; background-repeat: repeat-x;
-  /* Scroll by exactly one tile (520px) so the loop is seamless — no restart. */
-  animation: header-flow 5s linear infinite;
-}
-/* Faint diagonal hatch texture in the banner. */
-.app-header::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none; opacity: 0.5;
-  background: repeating-linear-gradient(135deg, transparent 0 9px, var(--grid) 9px 10px);
-}
-.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
-/* EXO mark: the "EX" artwork + the neon pokéball as the "O". The gap before the
-   pokéball mirrors the E–X gap baked into the image. */
-.brand-exo { display: flex; align-items: center; gap: 30px; flex-shrink: 0; }
-.brand-ex { height: 26px; width: auto; display: block; }
+.brand { display: flex; align-items: center; gap: 12px; min-width: 0; flex: none; }
+/* EXO mark: the "EX" artwork + the neon pokéball as the "O", kept as the title. */
+.brand-mark { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.brand-exo { display: flex; align-items: center; gap: 26px; flex-shrink: 0; }
+.brand-ex { height: 22px; width: auto; display: block; }
+/* The wordmark art is light; darken it on the light theme's white header. */
 [data-theme='light'] .brand-ex { filter: invert(1); }
 .brand-logo {
-  width: 52px; height: 38px; flex-shrink: 0;
-  fill: none; stroke: var(--ally); stroke-width: 2.4; stroke-linecap: round;
-  filter: drop-shadow(0 0 6px var(--ally-line));
+  width: 40px; height: 30px; flex-shrink: 0;
+  fill: none; stroke: var(--ally); stroke-width: 2.6; stroke-linecap: round;
 }
 .brand-logo-dot { fill: var(--ally); stroke: none; }
-.brand-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.wordmark {
-  font-family: var(--font-display);
-  font-size: 23px; font-weight: 700; line-height: 0.95;
-  display: flex; align-items: baseline; gap: 0.18em; white-space: nowrap;
-  letter-spacing: 0.06em; color: var(--text);
+.brand-sub { font-size: 11px; font-weight: 800; color: var(--text-dim); white-space: nowrap; }
+/* Classic | Battle Arena segmented toggle (centre column of the header grid). */
+.view-toggle { display: flex; background: var(--panel-3); border-radius: 13px; padding: 4px; flex: none; }
+.view-tab {
+  font-size: 12px; font-weight: 800; padding: 7px 15px; border-radius: 10px;
+  background: transparent; border: none; color: var(--text-dim); white-space: nowrap;
 }
-.wordmark span { color: var(--ally); font-weight: 700; text-shadow: 0 0 16px var(--ally-line); }
-.reg-badge {
-  font-family: var(--font-body);
-  font-size: 10px; font-weight: 700; color: var(--text-dim);
-  text-transform: uppercase; letter-spacing: 0.2em;
-  display: inline-flex; align-items: center;
-}
-.reg-badge::before {
-  content: ''; display: inline-block; width: 6px; height: 6px; margin-right: 7px;
-  background: var(--ally); border-radius: 1px; box-shadow: 0 0 8px var(--ally);
-}
+.view-tab.active { background: var(--active); color: var(--active-ink); box-shadow: var(--shadow); }
+
+.header-right { display: flex; align-items: center; gap: 8px; flex: none; }
 .theme-toggle {
-  font-size: 15px; line-height: 1; width: 38px; height: 38px; padding: 0; flex-shrink: 0;
+  font-size: 15px; line-height: 1; width: 36px; height: 36px; padding: 0; flex-shrink: 0;
   border-radius: var(--radius); display: grid; place-items: center; color: var(--text-dim);
-  background: var(--panel-3);
+  background: var(--panel-3); border: none;
 }
-.theme-toggle:hover { color: var(--ally); border-color: var(--ally); box-shadow: var(--glow-ally); }
+.theme-toggle:hover { color: var(--ally); background: var(--panel-3); }
+
+/* ---- Battlefield bar (global weather + terrain) ---- */
+.battlefield-bar {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  background: var(--panel); border-radius: 18px; padding: 11px 16px; box-shadow: var(--shadow);
+}
+.bf-label {
+  font-size: 9.5px; font-weight: 900; color: var(--text-dim);
+  letter-spacing: 0.1em; text-transform: uppercase; flex: none;
+}
+.bf-hint { margin-left: auto; font-size: 10px; font-weight: 800; color: var(--text-faint); }
+.battlefield-bar .weather-terrain { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+/* Weather + terrain as inline pills: a small label then the picker. */
+.battlefield-bar .weather-terrain .field {
+  flex-direction: row; align-items: center; gap: 8px; min-width: 0;
+  background: var(--panel-3); border-radius: var(--radius); padding: 4px 6px 4px 12px;
+}
+.battlefield-bar .weather-terrain .field > span { font-size: 9px; }
+.battlefield-bar .weather-terrain .field select,
+.battlefield-bar .weather-terrain .field .select-menu-btn {
+  background: transparent; border: none; padding: 5px 6px; width: auto; min-width: 92px;
+}
 
 /* ---- Field labels (shared) ---- */
 .field { display: flex; flex-direction: column; gap: 4px; min-width: 116px; }
@@ -90,33 +87,36 @@
 .block-label,
 .mon-role { font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.14em; }
 .reset-btn {
-  padding: 7px 14px; font-size: 11px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.08em;
-  border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel-3); color: var(--text-dim);
+  padding: 8px 13px; font-size: 11px; font-weight: 800;
+  border: none; border-radius: var(--radius); background: var(--panel-3); color: var(--text-dim);
 }
-.reset-btn:hover { border-color: var(--foe); color: var(--foe); background: var(--foe-soft); }
+.reset-btn:hover { color: var(--foe); background: var(--foe-soft); }
 
 /* ---- Per-side condition boxes (under each team) ---- */
 .side-stack { display: flex; flex-direction: column; gap: 12px; }
+/* Per-side condition boxes read as tinted bands: your side blue, the enemy red. */
 .side-cond {
-  display: flex; flex-direction: column; gap: 7px; padding: 11px 12px;
-  background: var(--panel); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow);
-  border-left: 3px solid var(--border-bright);
+  display: flex; flex-direction: column; gap: 7px; padding: 11px 13px;
+  border: 1px solid transparent; border-radius: var(--radius);
 }
-.side-cond--ally { border-left-color: var(--ally); }
-/* The enemy accent sits on the RIGHT edge instead, so the two boxes mirror:
-   ally line on the far left, foe line on the far right. */
-.side-cond--foe { border-left: 1px solid var(--border); border-right: 3px solid var(--foe); }
+.side-cond--ally { background: var(--side-ally-tint); border-color: var(--side-ally-border); }
+.side-cond--foe { background: var(--side-foe-tint); border-color: var(--side-foe-border); }
 .side-cond-head {
-  font-family: var(--font-display); font-size: 11px; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.14em; color: var(--text);
+  font-family: var(--font-display); font-size: 10px; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.09em; color: var(--text);
 }
-.cond-row { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
-.cond-row input { width: auto; flex-shrink: 0; }
-.cond-row em { font-style: normal; color: var(--text-faint); font-size: 11px; }
-.side-cond--ally .cond-row input { accent-color: var(--ally); }
-.side-cond--foe .cond-row input { accent-color: var(--foe); }
+.side-cond--ally .side-cond-head { color: var(--ally); }
+.side-cond--foe .side-cond-head { color: var(--foe); }
+/* Conditions are toggle pills: outlined when off, filled in the side's colour when on. */
+.cond-pills { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.cond-pill {
+  font-size: 10.5px; font-weight: 800; border-radius: var(--radius-chip); padding: 4px 10px;
+  background: var(--panel); color: var(--text-dim); border: 1.5px solid var(--border);
+}
+.side-cond--ally .cond-pill { border-color: var(--side-ally-border); }
+.side-cond--foe .cond-pill { border-color: var(--side-foe-border); }
+.side-cond--ally .cond-pill.on { background: var(--ally); border-color: var(--ally); color: #fff; }
+.side-cond--foe .cond-pill.on { background: var(--foe); border-color: var(--foe); color: #fff; }
 
 /* ---- Main layout ---- */
 .calc-layout { display: grid; grid-template-columns: 224px minmax(0, 1fr) 224px; gap: 16px; align-items: start; }
@@ -139,7 +139,7 @@
 .team-col, .center-col, .center-block, .bench-block { display: flex; flex-direction: column; gap: 12px; }
 .defenders-head { display: flex; align-items: center; justify-content: space-between; }
 /* The up-to-four remaining targets share one row; only fold on smaller screens. */
-.defenders-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.defenders-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; align-items: start; }
 @media (max-width: 920px) { .defenders-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 560px) { .defenders-grid { grid-template-columns: 1fr; } }
 
@@ -147,31 +147,28 @@
 @media (max-width: 900px) { .battle-row { grid-template-columns: 1fr; } }
 @media (max-width: 1100px) { .calc-layout { grid-template-columns: 1fr; } }
 
-/* ---- Shared HUD panel: corner ticks on key cards ---- */
+/* ---- Shared card surface ---- */
 .team-slots, .mon-editor {
   position: relative;
-  background: var(--panel); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow);
+  background: var(--panel); border: none;
+  border-radius: var(--radius-card); box-shadow: var(--shadow);
 }
-/* Targeting-reticle ticks at the top corners. */
+/* The old targeting-reticle corner ticks are gone in the Pokedex redesign. */
 .team-slots::before, .mon-editor::before,
-.team-slots::after, .mon-editor::after {
-  content: ''; position: absolute; top: -1px; width: 11px; height: 11px; pointer-events: none;
-  border-top: 2px solid var(--border-bright);
-}
-.team-slots::before, .mon-editor::before { left: -1px; border-left: 2px solid var(--border-bright); }
-.team-slots::after, .mon-editor::after { right: -1px; border-right: 2px solid var(--border-bright); }
+.team-slots::after, .mon-editor::after { content: none; }
 
 /* ---- Team box ---- */
 .team-slots { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
-.slot-numbers { display: flex; flex-wrap: wrap; gap: 4px; }
+/* Saved teams as named tabs (pills); active tab uses the segmented-toggle accent. */
+.slot-numbers { display: flex; flex-wrap: wrap; gap: 6px; }
 .slot {
-  width: 28px; height: 28px; padding: 0; border-radius: 3px; font-size: 12px; font-weight: 700;
-  font-family: var(--font-display); background: var(--panel-3); color: var(--text-dim);
+  flex: 1 1 auto; min-width: 0; max-width: 150px; padding: 7px 11px; border: none;
+  border-radius: 10px; font-size: 11px; font-weight: 800; font-family: var(--font-display);
+  background: var(--panel); color: var(--text-dim); box-shadow: var(--shadow);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.slot.active { background: var(--ally); border-color: var(--ally); color: #04141b; box-shadow: 0 0 14px -3px var(--ally); }
-.team-col--foe .slot.active { background: var(--foe); border-color: var(--foe); color: #1a0309; box-shadow: 0 0 14px -3px var(--foe); }
-.slot-add { color: var(--text-faint); border-style: dashed; }
+.slot.active { background: var(--active); color: var(--active-ink); }
+.slot-add { flex: 0 0 auto; width: 34px; max-width: 34px; text-align: center; font-size: 15px; color: var(--text-dim); }
 .team-slots-actions { display: flex; gap: 6px; align-items: center; }
 .team-name { font-weight: 700; font-size: 13px; flex: 1; min-width: 0; font-family: var(--font-display); }
 .team-slots-actions button { padding: 5px 8px; font-size: 12px; white-space: nowrap; }
@@ -181,51 +178,85 @@
   text-transform: uppercase; letter-spacing: 0.06em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
+/* The overlay's one-click device capture: the primary action, so accent it. */
+.import-btn--capture { color: #06121f; background: var(--ally); border-color: var(--ally); }
+.import-btn--capture:hover:not(:disabled) { filter: brightness(1.08); background: var(--ally); border-color: var(--ally); }
 
-/* ---- Member chips ---- */
-.member-list { display: flex; flex-direction: column; gap: 5px; }
+/* ---- Member rows (team list): Poké-ring + name + HP bar ---- */
+.member-list { display: flex; flex-direction: column; gap: 8px; }
 .member {
-  position: relative; display: flex; align-items: center; gap: 8px; padding: 5px 8px 5px 10px;
-  border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel);
-  cursor: pointer; overflow: hidden;
-  transition: background 0.14s, border-color 0.14s, transform 0.14s;
+  position: relative; display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+  border: none; border-radius: var(--radius); background: var(--panel);
+  cursor: pointer; box-shadow: var(--shadow);
+  transition: transform 0.14s, box-shadow 0.14s;
 }
-/* Left allegiance bar that lights up on hover/active. */
-.member::before {
-  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background: transparent; transition: background 0.14s;
-}
-.member:hover { background: var(--panel-2); transform: translateX(2px); }
-.team-col--ally .member:hover::before, .member:hover::before { background: var(--ally); }
-.team-col--foe .member:hover::before { background: var(--foe); }
-.member.active { border-color: var(--ally-line); background: var(--ally-soft); }
-.member.active::before { background: var(--ally); box-shadow: 0 0 12px var(--ally); }
+.member:hover { transform: translateX(2px); }
+.member.active { outline: 2.5px solid var(--ally); outline-offset: 0; box-shadow: 0 8px 22px rgba(47, 111, 237, 0.18); }
+.team-col--foe .member.active { outline-color: var(--foe); box-shadow: 0 8px 22px rgba(229, 72, 77, 0.18); }
 .member--static { cursor: default; }
 .member--static:hover { transform: none; }
 .member--drag { cursor: grab; }
 .member--drag:active { cursor: grabbing; }
-.member-sprite { width: 36px; height: 36px; object-fit: contain; flex-shrink: 0; image-rendering: auto; }
-.member-name { flex: 1; font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.member-ring { width: 38px; height: 38px; border-radius: 50%; flex: none; display: grid; place-items: center; }
+.member-sprite { width: 30px; height: 30px; object-fit: contain; flex-shrink: 0; image-rendering: auto; }
+.member-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .member-add {
-  font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
-  color: var(--text-dim); border-style: dashed; padding: 8px; background: transparent;
+  font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--text-dim); border: 1.5px dashed var(--border-bright); border-radius: var(--radius);
+  padding: 10px; background: transparent;
 }
 .member-add:hover { color: var(--ally); border-color: var(--ally); }
 
-/* ---- Pokémon editor ---- */
-.mon-sprite { width: 42px; height: 42px; object-fit: contain; flex-shrink: 0; }
+/* ---- Pokémon editor: type-tinted gradient header + padded body ---- */
+.mon-sprite { object-fit: contain; flex-shrink: 0; }
 .mon-editor {
-  padding: 10px 11px; display: flex; flex-direction: column; gap: 7px;
-  border-top: 2px solid var(--border-bright);
+  padding: 0 0 12px; display: flex; flex-direction: column; gap: 10px;
+  border-radius: var(--radius-card); overflow: hidden;
 }
-.mon-editor--attacker { border-top-color: var(--ally); box-shadow: var(--shadow), inset 0 1px 0 var(--ally-soft); }
-.mon-editor--attacker::before, .mon-editor--attacker::after { border-color: var(--ally); }
-.mon-editor-head { display: flex; align-items: center; gap: 9px; }
-.mon-editor-head .icon-btn { margin-left: auto; }
-.mon-title-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.mon-role { color: var(--text-faint); }
-.mon-editor--attacker .mon-role { color: var(--ally); }
-.mon-types { display: flex; gap: 5px; }
+.mon-editor--attacker { box-shadow: var(--shadow-lg); }
+/* Body sections get side padding; the header stays full-bleed. */
+.mon-editor > .mon-identity,
+.mon-editor > .spread-editor,
+.mon-editor > .moves-block,
+.mon-editor > .battle-state { padding-left: 14px; padding-right: 14px; }
+.mon-editor > .mon-identity { padding-top: 12px; }
+
+/* Gradient header — its background is set inline from the mon's types. */
+.mon-editor-head {
+  position: relative; display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; color: #fff; overflow: hidden;
+}
+/* A soft concentric ring echoing the design's headers. */
+.mon-editor-head::after {
+  content: ''; position: absolute; right: -34px; top: -52px;
+  width: 150px; height: 150px; border-radius: 50%;
+  border: 18px solid rgba(255, 255, 255, 0.10); pointer-events: none;
+}
+.mon-editor-head > * { position: relative; z-index: 1; }
+.mon-editor-head .icon-btn { margin-left: auto; color: rgba(255, 255, 255, 0.82); align-self: flex-start; }
+.mon-editor-head .icon-btn:hover { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+/* The sprite sits in a radial Poké-ring. */
+.poke-ring {
+  width: 54px; height: 54px; border-radius: 50%; flex: none;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 28%, rgba(255, 255, 255, 0.4));
+  display: grid; place-items: center;
+}
+.poke-ring .mon-sprite { width: 46px; height: 46px; }
+.mon-editor--attacker .poke-ring { width: 84px; height: 84px; }
+.mon-editor--attacker .poke-ring .mon-sprite { width: 74px; height: 74px; }
+
+.mon-title-line { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.mon-role {
+  font-size: 9px; font-weight: 900; letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.85); text-transform: uppercase;
+}
+.mon-types { display: flex; gap: 6px; flex-wrap: wrap; }
+/* Type badges become translucent white chips on the coloured header. */
+.mon-editor-head .type-badge {
+  background: rgba(255, 255, 255, 0.20) !important; color: #fff !important;
+  border: 1px solid rgba(255, 255, 255, 0.38); text-shadow: none; box-shadow: none;
+}
 .icon-btn {
   border: none; background: transparent; color: var(--text-faint);
   font-size: 19px; line-height: 1; padding: 0 6px; border-radius: var(--radius); cursor: pointer;
@@ -233,26 +264,57 @@
 }
 .icon-btn:hover { background: var(--foe-soft); color: var(--foe); }
 
-.species-input { font-weight: 700; font-family: var(--font-display); letter-spacing: 0.01em; }
+/* Species field styled as the big header title (transparent, still editable). */
+.mon-name-input {
+  border: none; background: transparent; padding: 0; width: 100%;
+  font-family: var(--font-display); font-weight: 900; letter-spacing: -0.01em;
+  font-size: 17px; color: #fff;
+}
+.mon-editor--attacker .mon-name-input { font-size: 24px; }
+.mon-name-input::placeholder { color: rgba(255, 255, 255, 0.6); }
+.mon-name-input:focus { outline: none; box-shadow: none; }
+.species-input { font-weight: 700; font-family: var(--font-display); }
 .mega-select { background: var(--panel-3); border-color: var(--border-bright); color: var(--ally); }
 
 .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 9px; }
 .field-grid .field { min-width: 0; }
 
-.moves-block { display: flex; flex-direction: column; gap: 4px; }
-.moves-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+.moves-block { display: flex; flex-direction: column; gap: 8px; }
+/* Section headings (Moves, Stat Points, Battle Boosts) read as bold dark titles. */
+.mon-editor .block-label { font-size: 13px; font-weight: 900; color: var(--text); text-transform: none; letter-spacing: 0; }
+.moves-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+/* Move plate: editable name + category/PP/BP, with a type-coloured end-cap. */
+.move-plate {
+  display: flex; align-items: stretch; min-height: 52px; overflow: hidden;
+  background: var(--panel-2); border: 2px solid transparent; border-radius: var(--radius-plate);
+}
+.move-plate:focus-within { border-color: var(--ally); }
+.move-plate-main { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 6px 10px; }
+.move-name { border: none; background: transparent; padding: 0; width: 100%; font-family: var(--font-display); font-weight: 900; font-size: 12.5px; }
+.move-name:focus { outline: none; box-shadow: none; }
+.move-meta { font-size: 9.5px; font-weight: 800; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.move-cat--physical { color: #e5643a; }
+.move-cat--special { color: #4c7be5; }
+.move-cat--status { color: var(--text-dim); }
+.move-cap { width: 38px; flex: none; display: grid; place-items: center; padding: 2px; }
+.move-cap-icon { width: 22px; height: 22px; }
 
-/* ---- Stat spread editor ---- */
-.spread-editor { display: flex; flex-direction: column; gap: 2px; }
-.spread-header { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 2px; }
-.sp-left { color: var(--ally); font-family: var(--font-display); }
+/* ---- Stat spread editor: rainbow bars keyed by stat ---- */
+.spread-editor { display: flex; flex-direction: column; gap: 7px; }
+.spread-header { display: flex; justify-content: space-between; align-items: center; font-size: 13px; font-weight: 900; color: var(--text); margin-bottom: 2px; }
+.sp-left { color: var(--ally); font-family: var(--font-display); font-weight: 900; font-size: 12px; }
 .sp-left.sp-empty { color: var(--text-faint); }
-.spread-row { display: grid; grid-template-columns: 36px 1fr 50px 36px; align-items: center; gap: 7px; }
-.spread-label { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+.spread-row { display: grid; grid-template-columns: 34px 1fr 46px 38px; align-items: center; gap: 9px; }
+.spread-label { font-size: 10.5px; font-weight: 900; color: var(--text-dim); }
 .spread-slider { width: 100%; padding: 0; accent-color: var(--ally); }
-.defender-card .spread-slider { accent-color: var(--foe); }
-.spread-number { padding: 3px 4px; text-align: center; font-family: var(--font-display); }
-.spread-final { font-size: 13px; font-weight: 700; text-align: right; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
+.spread-row--hp  .spread-label { color: var(--stat-hp); }  .spread-row--hp  .spread-slider { accent-color: var(--stat-hp); }
+.spread-row--atk .spread-label { color: var(--stat-atk); } .spread-row--atk .spread-slider { accent-color: var(--stat-atk); }
+.spread-row--def .spread-label { color: var(--stat-def); } .spread-row--def .spread-slider { accent-color: var(--stat-def); }
+.spread-row--spa .spread-label { color: var(--stat-spa); } .spread-row--spa .spread-slider { accent-color: var(--stat-spa); }
+.spread-row--spd .spread-label { color: var(--stat-spd); } .spread-row--spd .spread-slider { accent-color: var(--stat-spd); }
+.spread-row--spe .spread-label { color: var(--stat-spe); } .spread-row--spe .spread-slider { accent-color: var(--stat-spe); }
+.spread-number { padding: 4px; text-align: center; font-family: var(--font-display); font-weight: 900; border-radius: var(--radius-chip); border: none; background: var(--panel-3); }
+.spread-final { font-size: 13px; font-weight: 900; text-align: right; font-family: var(--font-display); font-variant-numeric: tabular-nums; }
 .spread-final.stat-up { color: var(--foe); }
 .spread-final.stat-down { color: var(--ally); }
 /* Stat changed from its base value by an in-battle boost or a held item (e.g.
@@ -260,76 +322,107 @@
 .spread-final.stat-mod { color: var(--ally); text-decoration: underline dotted; text-underline-offset: 3px; }
 
 /* ---- Battle state (stat boosts, always shown) ---- */
-.battle-state { font-size: 13px; }
-.boost-row { display: flex; gap: 6px; margin: 2px 0; }
-.boost-cell { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; min-width: 0; }
-.boost-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; font-weight: 700; }
-/* Custom stepper: value + stacked chevrons, replacing the native spinner. */
-.boost-stepper {
-  display: flex; align-items: stretch; width: 100%;
-  border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel-3);
-  overflow: hidden; height: 26px;
+/* ---- Battle boosts: compact rounded cells ---- */
+.battle-state { display: flex; flex-direction: column; gap: 8px; }
+.boost-row { display: flex; gap: 6px; margin: 0; }
+.boost-cell {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  background: var(--panel-3); border-radius: 11px; padding: 6px 3px;
 }
+.boost-label { font-size: 8.5px; font-weight: 900; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.03em; }
+.boost-stepper { display: flex; align-items: center; justify-content: center; gap: 2px; width: 100%; }
 .boost-val {
-  flex: 1; display: grid; place-items: center; font-family: var(--font-display);
-  font-variant-numeric: tabular-nums; font-weight: 700; font-size: 13px; color: var(--text-dim);
+  min-width: 22px; text-align: center; font-family: var(--font-display);
+  font-variant-numeric: tabular-nums; font-weight: 900; font-size: 14px; color: var(--text-faint);
 }
 .boost-val.pos { color: var(--ally); }
 .boost-val.neg { color: var(--foe); }
-.boost-arrows { display: flex; flex-direction: column; border-left: 1px solid var(--border); }
+.boost-arrows { display: flex; flex-direction: column; }
 .boost-arrow {
-  border: none; background: var(--panel-2); color: var(--text-dim);
-  font-size: 8px; line-height: 1; padding: 0; width: 16px; flex: 1; cursor: pointer;
-  display: grid; place-items: center; transition: background 0.12s, color 0.12s;
+  border: none; background: transparent; color: var(--text-faint);
+  font-size: 8px; line-height: 1; padding: 0; width: 14px; height: 11px; cursor: pointer;
+  display: grid; place-items: center; transition: color 0.12s;
 }
-.boost-arrow:first-child { border-bottom: 1px solid var(--border); }
-.boost-arrow:hover:not(:disabled) { background: var(--accent-dim); color: var(--accent); }
-.boost-arrow:disabled { opacity: 0.35; cursor: default; }
+.boost-arrow:hover:not(:disabled) { color: var(--ally); }
+.boost-arrow:disabled { opacity: 0.3; cursor: default; }
 .status-row { display: flex; align-items: center; gap: 9px; }
 .status-row > span { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; }
 
 /* ---- Type badges ---- */
 .type-badge {
-  display: inline-block; color: #fff; font-size: 10px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: 0.05em; padding: 2px 8px;
-  border-radius: 3px; font-family: var(--font-display);
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+  display: inline-flex; align-items: center; gap: 4px; color: #fff; font-size: 9.5px; font-weight: 900;
+  text-transform: uppercase; letter-spacing: 0.03em; padding: 3px 9px 3px 5px;
+  border-radius: 999px; font-family: var(--font-display);
+}
+/* Type icons (partywhale set): coloured circular badges. */
+.type-icon { display: inline-block; vertical-align: middle; flex: none; object-fit: contain; }
+.type-badge .type-icon { width: 14px; height: 14px; }
+
+/* ---- Defender card + results ----
+   The card is the rounded, clipped container; the editor + results sit flush
+   inside it (the gradient header runs to the top edge). */
+.defender-card {
+  display: flex; flex-direction: column;
+  background: var(--panel); border-radius: var(--radius-card);
+  overflow: hidden; box-shadow: var(--shadow);
+}
+.defender-card .mon-editor { border-radius: 0; box-shadow: none; }
+.results { display: flex; flex-direction: column; gap: 9px; padding: 11px 13px; }
+/* In the classic layout the enemy damage list sits at the FOOT of its card,
+   tinted and divided like the incoming panel under your attacker, so both
+   columns read the same way. Scoped to the defender card so the arena's own
+   damage pane (which shares the .results class) keeps its side-by-side sizing. */
+.defender-card > .results {
+  margin-top: auto;
+  background: var(--dmg-foe-tint); border-top: 1px solid var(--side-foe-border);
 }
 
-/* ---- Defender card + results ---- */
-.defender-card { display: flex; flex-direction: column; }
-.defender-card .mon-editor { border-radius: var(--radius) var(--radius) 0 0; border-top-color: var(--foe); }
-.defender-card .mon-editor::before, .defender-card .mon-editor::after { border-color: var(--foe); }
-.defender-card .mon-role { color: var(--foe); }
-.results {
-  margin-top: -1px; background: var(--panel-2);
-  border: 1px solid var(--border); border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius); padding: 8px 11px;
-  display: flex; flex-direction: column; gap: 6px;
+/* "Edit <name>'s set" collapsible body on enemy cards. */
+.edit-set { display: flex; flex-direction: column; gap: 10px; padding-bottom: 12px; }
+.edit-set-summary {
+  list-style: none; cursor: pointer; -webkit-tap-highlight-color: transparent;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  margin: 2px 13px 0; padding: 9px; border-radius: var(--radius-plate);
+  background: var(--panel-3); color: var(--text-dim); font-size: 11.5px; font-weight: 900;
 }
+.edit-set-summary::-webkit-details-marker { display: none; }
+.edit-set-summary:hover { color: var(--text); }
+.edit-set .chev { transition: transform 0.18s ease; }
+.edit-set[open] .chev { transform: rotate(180deg); }
+.edit-set > .mon-identity,
+.edit-set > .spread-editor,
+.edit-set > .moves-block,
+.edit-set > .battle-state { padding-left: 14px; padding-right: 14px; }
 .mon-editor-head--drag { cursor: grab; user-select: none; }
 .mon-editor-head--drag:active { cursor: grabbing; }
 .results-hint { font-size: 12px; color: var(--text-dim); font-style: italic; }
 /* Fixed columns so every damage bar is the exact same width across moves and
    cards (easier to eyeball at a glance). The percent column is a fixed 78px
    instead of "auto", which is what used to stretch/shrink the bar per row. */
-.result-row { display: grid; grid-template-columns: 86px 1fr 78px; align-items: center; gap: 9px; font-size: 12px; }
-.result-move { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.result-pct { font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 700; font-size: 14px; white-space: nowrap; letter-spacing: 0.01em; text-align: right; }
-.result-ko { grid-column: 2 / 4; font-size: 11px; color: var(--text-dim); }
+/* Damage row: type dot + move + % + KO badge on the first line, bar on the second. */
+.result-row { display: grid; grid-template-columns: 16px 1fr auto auto; align-items: center; gap: 5px 8px; font-size: 12px; }
+.result-type { width: 16px; height: 16px; grid-row: 1; }
+.result-type--none { border-radius: 50%; background: var(--text-faint); }
+.result-move { grid-row: 1; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.result-pct { grid-row: 1; font-family: var(--font-display); font-variant-numeric: tabular-nums; font-weight: 900; font-size: 13px; white-space: nowrap; text-align: right; }
+.result-status { color: var(--text-dim); font-weight: 800; }
+.result-ko { grid-row: 1; font-size: 8.5px; font-weight: 900; color: #fff; border-radius: var(--radius-chip); padding: 2px 7px; letter-spacing: 0.02em; }
+.result-row .dmg-bar { grid-column: 1 / -1; grid-row: 2; }
+.result-row--status { opacity: 0.55; }
 
 /* ---- Attacker column + incoming-damage tabs ---- */
-.attacker-col { display: flex; flex-direction: column; min-width: 0; }
-.attacker-col > .mon-editor { border-radius: var(--radius) var(--radius) 0 0; }
+.attacker-col {
+  display: flex; flex-direction: column; min-width: 0;
+  background: var(--panel); border-radius: var(--radius-card);
+  overflow: hidden; box-shadow: var(--shadow-lg);
+}
+.attacker-col > .mon-editor { border-radius: 0; box-shadow: none; }
 .incoming-panel {
-  margin-top: -1px;
-  background: var(--panel-2); border: 1px solid var(--border); border-top: none;
-  border-radius: 0 0 var(--radius) var(--radius); padding: 8px 11px;
-  display: flex; flex-direction: column; gap: 6px;
+  background: var(--side-foe-tint); border-top: 1px solid var(--side-foe-border);
+  padding: 11px 13px; display: flex; flex-direction: column; gap: 8px;
 }
 .incoming-topline { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; }
-.incoming-head { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; color: var(--text-dim); flex-shrink: 0; }
+.incoming-head { font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.06em; color: var(--foe); flex-shrink: 0; }
 .incoming-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
 .incoming-tab {
   display: inline-flex; align-items: center; gap: 5px;
@@ -342,10 +435,9 @@
 .incoming-tab.active { border-color: var(--foe); color: var(--text); font-weight: 700; background: var(--foe-soft); }
 .incoming-body { display: flex; flex-direction: column; gap: 5px; }
 
-/* ---- Damage bars ---- */
-.dmg-bar { height: 9px; background: var(--track); border-radius: 999px; overflow: hidden; border: 1px solid var(--border); }
-.dmg-bar-fill { height: 100%; border-radius: 999px; transition: width 0.2s ease; box-shadow: 0 0 10px -2px currentColor; position: relative; }
-.dmg-bar-fill::after { content: ''; position: absolute; inset: 0 0 50% 0; background: linear-gradient(rgba(255,255,255,0.25), transparent); border-radius: 999px 999px 0 0; }
+/* ---- Damage bars (clean green->red HP style) ---- */
+.dmg-bar { height: 7px; background: var(--track); border-radius: 4px; overflow: hidden; }
+.dmg-bar-fill { height: 100%; border-radius: 4px; transition: width 0.2s ease; }
 
 /* ---- Footer ---- */
 .app-footer {
@@ -502,24 +594,9 @@
 .report-set-moves { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ============================================================================
-   Glassmorphism — placed LAST so it wins over the base panel backgrounds.
-   Translucent + blurred so the grid and the scan pulses behind show through; a
-   bright top edge reads as the lit edge of glass.
+   The Pokedex redesign uses solid cards (no glass blur), so the old
+   glassmorphism layer is intentionally left out here.
    ========================================================================== */
-.team-slots, .mon-editor, .side-cond, .matchup-preview, .modal,
-.results, .incoming-panel {
-  -webkit-backdrop-filter: blur(12px) saturate(1.3);
-  backdrop-filter: blur(12px) saturate(1.3);
-  border-top-color: rgba(255, 255, 255, 0.14);
-}
-.team-slots, .mon-editor, .side-cond, .matchup-preview, .modal { background-color: var(--panel-glass); }
-.results, .incoming-panel { background-color: var(--panel2-glass); }
-.mon-editor, .team-slots, .side-cond, .results, .incoming-panel {
-  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-/* Keep the attacker/defender accent edge even with the glass top-border. */
-.mon-editor--attacker { border-top-color: var(--ally); }
-.defender-card .mon-editor { border-top-color: var(--foe); }
 
 /* ============================================================================
    Arena mode — a 2v2 battle. One management bar (both rosters + both sides'
@@ -533,23 +610,12 @@
 /* Management bar: My Team roster, your conditions, enemy conditions, enemy roster. */
 .arena-bar {
   display: flex; gap: 14px; align-items: flex-start;
-  padding: 10px 12px; background-color: var(--panel-glass);
-  -webkit-backdrop-filter: blur(12px) saturate(1.3); backdrop-filter: blur(12px) saturate(1.3);
-  border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow);
+  padding: 12px 14px; background: var(--panel);
+  border-radius: var(--radius-card); box-shadow: var(--shadow);
   animation: hud-rise 0.4s ease both;
 }
-/* Fuse the header and the team bar into one stacked panel split by a single
-   line, instead of two separate panels floating apart. The header's bottom is
-   flattened and pulled flush onto the bar (cancelling the column gap), and the
-   bar's top border becomes the divider. */
-.app--arena .app-header {
-  border-bottom: none;
-  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
-  margin-bottom: -16px;
-}
-.app--arena .arena-bar {
-  border-top-left-radius: 0; border-top-right-radius: 0;
-}
+/* In the redesign the header and the management bar are separate rounded panels
+   (the old fused-panel treatment is dropped). */
 .arena-bar > .team-col { flex: 2 1 0; min-width: 0; }
 .arena-bar > .side-cond { flex: 0 0 auto; align-self: stretch; }
 /* Lay each team box and its roster SIDE BY SIDE (title across the top, the team
@@ -589,21 +655,94 @@
 .arena-bar .col-title { display: none; }
 .arena-bar .side-cond-head { display: none; }
 
+/* ---- Desktop arena: a management bar + a field bar (matching the redesign) ----
+   Both are `1fr auto 1fr` grids: your side, a centre piece (the VS badge / the
+   battlefield), then the enemy side mirrored. */
+.arena-manage { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+.arena-field { display: grid; grid-template-columns: 1fr auto 1fr; gap: 14px; align-items: stretch; }
+
+/* Each side's roster: a label + saved-team tabs, then six Poké-ring tiles. */
+.arena-roster { background: var(--panel); border-radius: 18px; box-shadow: var(--shadow); padding: 11px 14px; }
+.arena-roster-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
+.arena-roster-label { font-size: 11px; font-weight: 900; letter-spacing: 0.06em; text-transform: uppercase; }
+.arena-roster--ally .arena-roster-label { color: var(--ally); }
+.arena-roster--foe .arena-roster-label { color: var(--foe); }
+/* The enemy side mirrors: tabs on the left, label on the right. */
+.arena-roster--foe .arena-roster-head { flex-direction: row-reverse; }
+.arena-roster-tabs { display: flex; gap: 5px; flex-wrap: wrap; }
+.arena-team-tab {
+  font-size: 10px; font-weight: 800; border: none; border-radius: 7px; padding: 4px 9px;
+  background: var(--panel-3); color: var(--text-dim); max-width: 120px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.arena-team-tab.active { background: var(--active); color: var(--active-ink); }
+.arena-team-tab--import { border: 1.5px dashed var(--border-bright); background: transparent; }
+
+.arena-roster-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.arena-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 5px 2px; border: none; border-radius: 11px; background: var(--panel-3); min-width: 0;
+}
+.arena-roster--ally .arena-tile.active { background: var(--side-ally-tint); outline: 2px solid var(--ally); }
+.arena-roster--foe .arena-tile.active { background: var(--side-foe-tint); outline: 2px solid var(--foe); }
+.arena-tile-ring { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; }
+.arena-tile-ring--add { background: var(--panel-2); color: var(--text-dim); font-size: 16px; font-weight: 900; }
+.arena-tile-sprite { width: 28px; height: 28px; object-fit: contain; }
+.arena-tile-name {
+  font-size: 8.5px; font-weight: 800; color: var(--text-dim); max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.arena-roster--ally .arena-tile.active .arena-tile-name { color: var(--ally); }
+.arena-roster--foe .arena-tile.active .arena-tile-name { color: var(--foe); }
+
+/* Field bar: your side (blue) | the battlefield | the enemy side (red). */
+.arena-field-center {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  background: var(--panel); border-radius: 15px; box-shadow: var(--shadow); padding: 9px 14px;
+}
+.arena-field-center .bf-label { font-size: 9px; font-weight: 900; letter-spacing: 0.09em; color: var(--text-dim); }
+.arena-field-center .weather-terrain { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.arena-field-center .weather-terrain .field { flex-direction: row; align-items: center; gap: 6px; min-width: 0; }
+.arena-field-center .weather-terrain .field > span { font-size: 9px; }
+.arena-field-center .weather-terrain select,
+.arena-field-center .weather-terrain .select-menu-btn { min-width: 96px; width: auto; padding: 4px 8px; font-size: 11px; }
+/* The field bar's side boxes read as one horizontal band of pills. */
+.arena-field .side-cond { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 7px; padding: 9px 13px; }
+.arena-field .side-cond--foe { justify-content: flex-end; }
+.arena-field .side-cond--foe .side-cond-head { order: 2; }
+
 /* The card: editor on the left (its sections wrap into a row so it stays short),
    damage panel on the right. Side by side keeps the card about as tall as the
    editor alone, so all four fit on screen. */
-.arena-card { display: flex; align-items: stretch; }
+.arena-card { position: relative; display: flex; align-items: stretch; background: var(--panel); border-radius: var(--radius-card); overflow: hidden; box-shadow: var(--shadow); }
+/* The gradient header spans the FULL card width: it's positioned absolutely over
+   both the editor pane and the damage pane, and both panes are padded down to
+   clear it (mon-editor is made static so the header anchors to .arena-card). */
+.arena-card .mon-editor-head {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 2;
+  height: 58px; padding: 0 16px; margin: 0; border-radius: 0;
+}
+.arena-card .poke-ring { width: 42px; height: 42px; }
+.arena-card .poke-ring .mon-sprite { width: 36px; height: 36px; }
+.arena-card .mon-title-line { flex-direction: row; align-items: center; gap: 6px 9px; flex-wrap: nowrap; min-width: 0; }
+.arena-card .mon-name-input { font-size: 16px; width: auto; flex: 0 1 auto; min-width: 36px; }
+.arena-card .mon-types { flex: none; }
+.arena-card .mon-role { flex: none; }
 /* Fixed three-column grid (identity | spread | moves) so the sections always sit
-   in one row and never wrap, regardless of their content widths. */
+   in one row and never wrap, padded below the absolutely-positioned header. */
 .arena-card .mon-editor {
-  flex: 1 1 auto; min-width: 0;
-  border-radius: var(--radius) 0 0 var(--radius);
+  position: static; flex: 1 1 auto; min-width: 0;
+  border-radius: 0; box-shadow: none; padding: 66px 14px 12px;
   display: grid;
   grid-template-columns: minmax(0, 205px) minmax(0, 1fr) minmax(0, 165px);
   grid-auto-rows: min-content; align-items: start; gap: 8px 16px;
 }
 .arena-card .mon-editor::after { display: none; } /* drop the mid-card corner tick */
-.arena-card .mon-editor-head { grid-column: 1 / -1; }
+/* The classic side padding on body sections is not wanted inside the arena grid. */
+.arena-card .mon-editor > .mon-identity,
+.arena-card .mon-editor > .spread-editor,
+.arena-card .mon-editor > .moves-block,
+.arena-card .mon-editor > .battle-state { padding-top: 0; padding-left: 0; padding-right: 0; }
 /* identity = species name on top of nature/item/ability/status, beside the
    spread, so the name lands on the "Stat Points" line (its old full-width row
    is gone). */
@@ -624,23 +763,16 @@
    to wrap to its own row (which made the card tall). */
 .arena-card .field-grid .field, .arena-card .field-grid select, .arena-card .field-grid input { min-width: 0; }
 .arena-damage {
-  flex: 0 0 248px; margin-top: 0; align-self: stretch;
-  border-radius: 0 var(--radius) var(--radius) 0;
-  border-top: 1px solid var(--border); border-left: none;
+  flex: 0 0 248px; align-self: stretch; padding: 66px 13px 12px;
+  border-left: 1px solid var(--border);
+  background: var(--dmg-ally-tint); display: flex; flex-direction: column; gap: 9px;
 }
-/* Enemy cards mirror: the Damage from panel sits on the LEFT (toward the VS). */
+/* Enemy cards mirror: the Damage-from panel sits on the LEFT (toward the VS). */
 .arena-card--foe { flex-direction: row-reverse; }
-.arena-card--foe .mon-editor { border-radius: 0 var(--radius) var(--radius) 0; }
 .arena-card--foe .arena-damage {
-  border-radius: var(--radius) 0 0 var(--radius);
-  border-left: 1px solid var(--border); border-right: none;
+  border-left: none; border-right: 1px solid var(--border);
+  background: var(--dmg-foe-tint);
 }
-/* Damage rows in arena: name + bar on one line, percent and KO chance under it. */
-.arena-damage .result-row { grid-template-columns: 84px 1fr; grid-auto-rows: min-content; column-gap: 8px; row-gap: 1px; align-items: center; }
-.arena-damage .result-move { grid-column: 1; grid-row: 1; }
-.arena-damage .dmg-bar { grid-column: 2; grid-row: 1; }
-.arena-damage .result-pct { grid-column: 1; grid-row: 2; text-align: left; font-size: 12px; }
-.arena-damage .result-ko { grid-column: 2; grid-row: 2; font-size: 11px; }
 
 /* VS divider. */
 .arena-vs { position: relative; display: flex; align-items: center; justify-content: center; align-self: stretch; padding: 0 6px; }
@@ -688,3 +820,109 @@
 .rotate-gate-title { font-family: var(--font-display); font-size: 16px; font-weight: 700; letter-spacing: 0.04em; color: var(--text); margin: 0; }
 .rotate-gate-text { font-size: 13px; line-height: 1.5; color: var(--text-dim); margin: 0; }
 .rotate-gate-card .reset-btn { margin-top: 4px; }
+
+/* ============================================================================
+   Android overlay — compact, phone-sized chrome.
+
+   Added by the Android app (it sets the `android-overlay` class on <html>, on
+   top of `tauri-overlay` which makes the page background transparent). The whole
+   calc runs full-screen in a WebView over the game, so here we trim the wasted
+   space: drop the wordmark and footer, shrink the logo / paddings / gaps, and
+   pad below the status bar (--ov-top is injected by the native shell). Scoped to
+   the class, so the website and desktop overlay are untouched.
+   ========================================================================== */
+.android-overlay .app {
+  padding: 6px 6px 10px;
+  padding-top: calc(var(--ov-top, 24px) + 6px);
+  gap: 8px;
+}
+
+/* Header: keep the EXO mark + weather + controls; drop the big wordmark. */
+.android-overlay .app-header { padding: 6px 9px; gap: 8px; }
+.android-overlay .brand { gap: 8px; }
+.android-overlay .brand-text { display: none; }
+.android-overlay .brand-exo { gap: 13px; }
+.android-overlay .brand-ex { height: 18px; }
+.android-overlay .brand-logo { width: 30px; height: 22px; }
+.android-overlay .weather-terrain { gap: 8px; }
+.android-overlay .weather-terrain .field { min-width: 86px; }
+.android-overlay .header-right { gap: 6px; }
+.android-overlay .arena-toggle { font-size: 11px; }
+.android-overlay .reset-btn { padding: 5px 8px; font-size: 10px; }
+.android-overlay .theme-toggle { width: 30px; height: 30px; font-size: 13px; }
+.android-overlay .tauri-wbtn { width: 30px; height: 30px; }
+
+/* Tighten the layout grids and cards. */
+.android-overlay .calc-layout,
+.android-overlay .battle-row,
+.android-overlay .center-col,
+.android-overlay .side-stack { gap: 8px; }
+.android-overlay .field { min-width: 0; }
+.android-overlay .field-grid { gap: 8px; }
+
+/* The footer (credits / Ko-fi) just wastes vertical space on the phone overlay. */
+.android-overlay .app-footer { display: none; }
+
+/* Drop the stat-point gauges everywhere in the overlay; keep just the numeric
+   entry (the sliders are fiddly on a phone and eat width). */
+.android-overlay .spread-slider { display: none; }
+.android-overlay .spread-row { grid-template-columns: 34px 1fr 42px; gap: 6px; }
+.android-overlay .spread-number { text-align: center; }
+
+/* ---- Arena on the phone overlay: a 2x2 paired board (kept in both orientations) ----
+   The website gates arena behind "turn sideways"; the overlay keeps the 2v2 feel
+   as a 2-column board (your #1 | enemy #1, then your #2 | enemy #2 below) in BOTH
+   portrait and landscape. Each card is a compact tile: editor stacked over the
+   damage panel. The rotate prompt isn't rendered in compact, so we re-show the
+   board the portrait media query would otherwise hide. */
+.android-overlay .app--arena .arena-bar { display: flex; }
+.android-overlay .app--arena .arena-ground--paired {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px; align-items: start;
+}
+.android-overlay .arena-card,
+.android-overlay .arena-card--foe { flex-direction: column; flex-wrap: wrap; }
+.android-overlay .arena-card .mon-editor {
+  display: flex; flex-direction: column; gap: 8px;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+.android-overlay .arena-card .moves-grid { grid-template-columns: 1fr; }
+.android-overlay .arena-damage {
+  flex: 1 1 auto; align-self: stretch;
+  border-radius: 0 0 var(--radius) var(--radius);
+  border-top: 1px solid var(--border); border-left: 1px solid var(--border);
+}
+.android-overlay .arena-card--foe .arena-damage {
+  border-radius: 0 0 var(--radius) var(--radius);
+  border-right: 1px solid var(--border); border-left: 1px solid var(--border);
+}
+
+/* Landscape: the cells are wider, so lay the editor in two inner columns
+   (identity beside the stat spread, moves on two columns) to make each card
+   squarer instead of a tall strip — while keeping the 2x2 board. */
+@media (orientation: landscape) {
+  .android-overlay .arena-card .mon-editor {
+    display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 12px;
+  }
+  .android-overlay .arena-card .mon-editor-head,
+  .android-overlay .arena-card .moves-block,
+  .android-overlay .arena-card .battle-state { grid-column: 1 / -1; }
+  .android-overlay .arena-card .moves-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* The active-Pokémon picker: a row of tappable team sprites. Not a native
+   <select> — those don't open reliably from a system-overlay WebView — so this
+   is plain DOM. Tap a sprite to drop that Pokémon into this active slot. */
+.android-overlay .arena-pick {
+  display: flex; gap: 4px; flex-wrap: wrap; width: 100%; margin: 0 0 6px; padding: 4px;
+  background: var(--panel-3); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.android-overlay .arena-card--ally .arena-pick { border-left: 3px solid var(--ally); }
+.android-overlay .arena-card--foe .arena-pick { border-left: 3px solid var(--foe); }
+.android-overlay .arena-pick-chip {
+  width: 38px; height: 38px; padding: 0; display: grid; place-items: center;
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: var(--radius);
+}
+.android-overlay .arena-pick-chip img { width: 34px; height: 34px; object-fit: contain; }
+.android-overlay .arena-card--ally .arena-pick-chip.active { border-color: var(--ally); box-shadow: 0 0 0 1px var(--ally); }
+.android-overlay .arena-card--foe .arena-pick-chip.active { border-color: var(--foe); box-shadow: 0 0 0 1px var(--foe); }

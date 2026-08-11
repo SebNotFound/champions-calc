@@ -5,6 +5,7 @@
  */
 import { MAX_TEAMS } from '../champions';
 import type { Team } from '../champions';
+import { isTauri, isAndroidOverlay } from './tauri';
 
 interface Props {
   teams: Team[];
@@ -19,9 +20,11 @@ interface Props {
   onImportPhoto: () => void;
   /** Import your own team from its in-game report (player side only). */
   onImportReport?: () => void;
+  /** Overlay only: capture this side straight from the device via adb. */
+  onCapture?: () => void;
 }
 
-export function TeamSlots({ teams, activeIdx, onSelect, onAdd, onRename, onDelete, onImportText, onImportPhoto, onImportReport }: Props) {
+export function TeamSlots({ teams, activeIdx, onSelect, onAdd, onRename, onDelete, onImportText, onImportPhoto, onImportReport, onCapture }: Props) {
   const active = teams[activeIdx];
   return (
     <div className="team-slots">
@@ -33,11 +36,11 @@ export function TeamSlots({ teams, activeIdx, onSelect, onAdd, onRename, onDelet
             onClick={() => onSelect(i)}
             title={t.name}
           >
-            {i + 1}
+            {t.name || `Team ${i + 1}`}
           </button>
         ))}
         {teams.length < MAX_TEAMS && (
-          <button className="slot slot-add" onClick={onAdd} title="New team">+</button>
+          <button className="slot slot-add" onClick={onAdd} title="New team" aria-label="New team">+</button>
         )}
       </div>
       <div className="team-slots-actions">
@@ -50,6 +53,9 @@ export function TeamSlots({ teams, activeIdx, onSelect, onAdd, onRename, onDelet
         <button onClick={onDelete} disabled={teams.length <= 1} title="Delete this team" aria-label="Delete team">🗑</button>
       </div>
       <div className="team-import-row">
+        {onCapture && (isTauri() || isAndroidOverlay()) && (
+          <button className="import-btn import-btn--capture" onClick={onCapture} title="Capture this team straight from the screen">Capture</button>
+        )}
         <button className="import-btn" onClick={onImportText} title="Import: paste a pokepaste / Showdown team">Text</button>
         <button className="import-btn" onClick={onImportPhoto} title="Import: from a Team Preview screenshot or photo">Photo</button>
         {onImportReport && (

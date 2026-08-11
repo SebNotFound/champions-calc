@@ -14,6 +14,7 @@ import {
   getSpeciesBaseStats,
   getDefaultAbility,
   emptySpread,
+  applyMegaItem,
   NATURES,
 } from '../champions';
 import type { ChampionsSet, NatureName, StatTable } from '../champions';
@@ -67,7 +68,8 @@ export function toChampionsSet(raw: RawSet): ChampionsSet | null {
   const moves = (raw.moves ?? []).map((m) => (m ?? '').trim()).filter(Boolean).slice(0, 4);
   while (moves.length < 4) moves.push('');
 
-  return {
+  // A held mega item brings the mon in already mega-evolved.
+  return applyMegaItem({
     species,
     level: 50,
     nature: validNature(raw.nature),
@@ -75,7 +77,7 @@ export function toChampionsSet(raw: RawSet): ChampionsSet | null {
     ability: raw.ability?.trim() || getDefaultAbility(species),
     moves,
     statPoints,
-  };
+  });
 }
 
 /** Pull the first {...} JSON object out of a model response (handles code fences/prose). */

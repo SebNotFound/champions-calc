@@ -93,7 +93,7 @@ export function StatSpreadEditor({ baseStats, spread, nature, level, onChange, i
           itemHere ? `x${itemBoost!.mult} ${item}` : '',
         ].filter(Boolean).join(', ');
         return (
-          <div className="spread-row" key={stat}>
+          <div className={`spread-row spread-row--${stat}`} key={stat}>
             <label className="spread-label">{STAT_LABELS[stat]}</label>
             <input
               type="range"

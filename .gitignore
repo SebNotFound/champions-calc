@@ -18,7 +18,8 @@ dist-ssr
 # Recognizer dev crop outputs
 samples/crops
 
-# Editor directories and files
+# Editor / tooling directories
+.claude/
 .vscode/*
 !.vscode/extensions.json
 .idea

@@ -24,6 +24,10 @@ Thank you for the 1000 visits per month !
 
 ## A look at it
 
+The calculator got a full redesign: a bright, Pokédex style look with type tinted
+cards, real type icons, rainbow stat bars and HP style damage bars. There is a dark
+theme behind the toggle in the header if you prefer it.
+
 The classic side by side calculator, your team on the left and the enemy on the right:
 
 ![The classic calculator with both teams and live damage in both directions](docs/screenshots/classic.png)
@@ -51,12 +55,13 @@ Battle Arena, a 2v2 board that runs the very same maths in a battlefield layout:
 
 ## Battle Arena
 
-There is a second layout you can flip to with the Arena toggle in the header, built for
-doubles. It puts your two active Pokémon on the left and the enemy's two on the right, with a
-VS down the middle, so it reads like a real 2v2 board. Across the top is one management bar
-that holds both teams' rosters and each side's battle conditions, so the whole setup lives in
-one place. Each card is the full editor, and its damage panel faces the centre: it shows what
-that Pokémon takes from either of the two across from it, and a small tab picks which attacker.
+There is a second layout you can flip to from the toggle in the header, built for doubles. It
+puts your two active Pokémon on the left and the enemy's two on the right, with a VS down the
+middle, so it reads like a real 2v2 board. Across the top are two bars: your roster facing the
+enemy roster, each Pokémon a tile you can tap to send it to the front line, then a field bar
+with your screens on the left, the weather and terrain in the middle, and their screens on the
+right. Each card is the full editor, and its damage panel faces the centre: it shows what that
+Pokémon takes from either of the two across from it, and a small tab picks which attacker.
 
 It is not a separate calculator. It is the exact same engine and the same set editors as the
 classic view, only dealt out as a battlefield, so the numbers always match between the two.
@@ -121,10 +126,11 @@ run `npm run build` and serve the `dist` folder. Tests are `npm test`.
 * `@smogon/calc` for the damage engine, with `@pkmn/dex` and `@pkmn/data` for species, moves
   and learnsets, and `@pkmn/img` for sprites.
 * `tesseract.js` for the free on device OCR, `jpeg-js` for decoding screenshots.
-* The look is a custom battle HUD theme. The two sides drive the palette: your side is cyan,
-  the enemy side is rose, over a dark grid. The type is Chakra Petch for the technical bits
-  and Hanken Grotesk for the body text. There is a light theme too, behind the toggle in the
-  header.
+* The look is a Pokédex style theme in plain CSS, no framework. Each Pokémon's card header is
+  a gradient mixed from its own types, moves sit on plates with a type coloured end cap, stats
+  get the usual rainbow, and damage bars run green to red like an HP bar. Your side is blue and
+  the enemy side is red throughout. Nunito for everything, and a dark "Night HUD" theme behind
+  the toggle in the header.
 
 The code is commented the way a person would explain it to another person: the why behind a
 choice, the tricky cases, and the reasoning, rather than restating what the line already says.
@@ -165,6 +171,7 @@ for the original.
 
 Damage engine by the Smogon community (`@smogon/calc`). Pokémon data and sprites via the
 `@pkmn` projects. Sprites for the Champions-original Mega Evolutions (which Showdown has no
-art for) are from [Serebii.net](https://www.serebii.net/pokemonchampions/). Pokémon is a
-trademark of Nintendo, Game Freak and The Pokémon Company. This is a fan made tool with no
-affiliation.
+art for) are from [Serebii.net](https://www.serebii.net/pokemonchampions/). The type icons are
+[partywhale/pokemon-type-icons](https://github.com/partywhale/pokemon-type-icons), used under
+the MIT license. Pokémon is a trademark of Nintendo, Game Freak and The Pokémon Company. This
+is a fan made tool with no affiliation.

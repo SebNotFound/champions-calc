@@ -21,6 +21,7 @@ import { fuzzyBest } from './fuzzy';
 import {
   listSpecies, listItems, listMoves, listAbilities,
   speciesAbilities, speciesMoves, getSpeciesBaseStats, emptySpread,
+  applyMegaItem, MEGA_ITEMS,
 } from '../champions';
 import type { ChampionsSet, StatKey, StatSpread, NatureName } from '../champions';
 
@@ -95,7 +96,9 @@ export async function recognizeTeamReportLocal(input: ReportInput, onProgress?: 
   if (!input.stats && !input.moves) throw new Error('Add at least one screenshot.');
 
   const allSpecies = listSpecies();
-  const allItems = listItems();
+  // Include the Champions generic mega items so the OCR can actually match them
+  // (they aren't in the dex item list).
+  const allItems = [...listItems(), ...MEGA_ITEMS];
   const allMoves = listMoves();
   const allAbilities = listAbilities();
 
@@ -193,7 +196,9 @@ export async function recognizeTeamReportLocal(input: ReportInput, onProgress?: 
       }
 
       if (!species) continue;
-      sets.push({ species, level: 50, nature, statPoints, ability, item: item || undefined, moves: moves.slice(0, 4) });
+      // A held mega item (Mega Gem / Orb, or a real Mega Stone) brings the mon in
+      // already mega-evolved.
+      sets.push(applyMegaItem({ species, level: 50, nature, statPoints, ability, item: item || undefined, moves: moves.slice(0, 4) }));
     }
     if (!sets.length) throw new Error('Couldn’t read any Pokémon from the screenshot(s).');
     return sets;

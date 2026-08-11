@@ -21,7 +21,6 @@ import type { ChampionsSet } from '../champions';
 interface Props {
   set: ChampionsSet;
   onChange: (next: ChampionsSet) => void;
-  onRemove: () => void;
   /** The already-built attacker, or null while its species is invalid. */
   attacker: Pokemon | null;
   /** Non-empty attacker move names. */
@@ -32,7 +31,7 @@ interface Props {
   onSwap: (from: number, to: number) => void;
 }
 
-export function DefenderCard({ set, onChange, onRemove, attacker, attackerMoves, field, index, onSwap }: Props) {
+export function DefenderCard({ set, onChange, attacker, attackerMoves, field, index, onSwap }: Props) {
   // Build this defender; null if the species box is mid-edit / unknown.
   const defender = useMemo<Pokemon | null>(() => {
     try {
@@ -68,15 +67,22 @@ export function DefenderCard({ set, onChange, onRemove, attacker, attackerMoves,
         set={set}
         onChange={onChange}
         role="defender"
-        onRemove={onRemove}
         title={`Target ${index + 1}`}
         draggable
         onHeaderDragStart={(e) => {
           e.dataTransfer.setData('text/plain', String(index));
           e.dataTransfer.effectAllowed = 'move';
         }}
+        /* The two front-line targets stay fully open (they're the ones you tune
+           mid-calc); the benched ones collapse behind the "Edit set" toggle.
+           This keys off the card's position, so dragging a bench target to the
+           front opens it (and the one it replaces folds away) on its own. */
+        collapsibleBody={index >= 2}
+        summaryLabel={`Edit ${set.megaForme ?? set.species}'s set`}
       />
 
+      {/* Damage sits at the FOOT of the card, mirroring the incoming-damage panel
+          under your attacker, so both columns read the same way. */}
       <div className="results">
         {!attacker && <p className="results-hint">Set an attacker species to see damage.</p>}
         {attacker && attackerMoves.length === 0 && (

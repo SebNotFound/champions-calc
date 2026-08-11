@@ -9,7 +9,7 @@
  *  • The enemy team's Pokémon are the calc targets; every attacker move is
  *    scored against each, live.
  */
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import type { Pokemon } from '@smogon/calc';
 import { MatchupPreview } from './ui/MatchupPreview';
@@ -18,15 +18,20 @@ import { PokemonEditor } from './ui/PokemonEditor';
 import { DefenderCard } from './ui/DefenderCard';
 import { IncomingPanel } from './ui/IncomingPanel';
 import { TeamColumn } from './ui/TeamColumn';
+import { ArenaRoster } from './ui/ArenaRoster';
 import { WeatherTerrain, SideConditions, defaultFieldState, toField, toIncomingField } from './ui/FieldControls';
 import type { FieldState } from './ui/FieldControls';
 import { SharedDatalists } from './ui/widgets';
 import { ImportDialog } from './ui/ImportDialog';
+import {
+  TauriWindowControls, useTauriOverlayChrome, useOverlayEvent,
+  AndroidOverlayControls, useAndroidOverlayChrome, isAndroidOverlay,
+} from './ui/tauri';
 import { TeamReportDialog } from './ui/TeamReportDialog';
 import { BrandLogo } from './ui/BrandLogo';
 import { PokepasteDialog } from './ui/PokepasteDialog';
 import {
-  buildPokemon, defaultSet, autofillSet, CHAMPIONS_FORMAT,
+  buildPokemon, defaultSet, autofillSet,
   loadState, saveState, seedState, emptyTeam, MAX_TEAMS, MAX_TEAM_SIZE,
 } from './champions';
 import type { ChampionsSet, Team, SavedState } from './champions';
@@ -70,12 +75,14 @@ export default function App() {
   const [attackerIdx, setAttackerIdx] = useState(0);
   const [fieldState, setFieldState] = useState<FieldState>(defaultFieldState);
   const [photoSide, setPhotoSide] = useState<null | 'player' | 'enemy'>(null);
+  // When the import dialog is opened by the overlay "Capture" button, grab the device immediately.
+  const [photoAutoCapture, setPhotoAutoCapture] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const [pasteSide, setPasteSide] = useState<null | 'player' | 'enemy'>(null);
   const [theme, setTheme] = useState<'light' | 'dark'>(() => {
     const saved = localStorage.getItem('champions-calc/theme');
     if (saved === 'light' || saved === 'dark') return saved;
-    return 'dark'; // the "Stadium" battlefield is dark-first; toggle for daylight
+    return 'light'; // the Pokedex redesign is light-first; toggle for the Night HUD
   });
   // Arena mode: same calc, a mirrored "VS" disposition. Off by default, remembered.
   const [arena, setArena] = useState<boolean>(() => localStorage.getItem('champions-calc/arena') === '1');
@@ -248,7 +255,7 @@ export default function App() {
       onRenameTeam={renamePlayerTeam}
       onDeleteTeam={deletePlayerTeam}
       onImportText={() => setPasteSide('player')}
-      onImportPhoto={() => setPhotoSide('player')}
+      onImportPhoto={() => { setPhotoAutoCapture(false); setPhotoSide('player'); }}
       onImportReport={() => setReportOpen(true)}
       onAddMember={addPlayerMember}
       onRemoveMember={removePlayerMember}
@@ -277,7 +284,8 @@ export default function App() {
       onRenameTeam={renameEnemyTeam}
       onDeleteTeam={deleteEnemyTeam}
       onImportText={() => setPasteSide('enemy')}
-      onImportPhoto={() => setPhotoSide('enemy')}
+      onImportPhoto={() => { setPhotoAutoCapture(false); setPhotoSide('enemy'); }}
+      onCapture={() => { setPhotoAutoCapture(true); setPhotoSide('enemy'); }}
       onAddMember={addEnemyMember}
       onRemoveMember={removeEnemyMember}
       onMemberReorder={swapEnemyMembers}
@@ -318,7 +326,6 @@ export default function App() {
       index={idx}
       set={d}
       onChange={(next) => updateEnemyMember(idx, next)}
-      onRemove={() => removeEnemyMember(idx)}
       onSwap={swapEnemyMembers}
       attacker={attackerMon}
       attackerMoves={attackerMoves}
@@ -326,44 +333,110 @@ export default function App() {
     />
   );
 
+  // The arena cards are rendered the same way in both arena layouts (the desktop
+  // two-column board and the phone overlay's paired board), so define them once.
+  // `compact` is the Android overlay: there, each card also gets a `roster` so you
+  // can switch the active Pokémon with a tap (drag is impractical on a phone).
+  const compact = isAndroidOverlay();
+  const renderAllyCard = (set: ChampionsSet, i: number) => (
+    <ArenaCard
+      key={`pa-${playerTeamIdx}-${i}`}
+      set={set}
+      onChange={(next) => updateMembers('playerTeams', playerTeamIdx, (ms) => ms.map((m, j) => (j === i ? next : m)))}
+      index={i}
+      onSwap={swapPlayerMembers}
+      role="attacker"
+      side="ally"
+      title={`Your ${i + 1}`}
+      attackers={enemyBattlers}
+      field={incomingField}
+      roster={compact ? playerTeam.members : undefined}
+    />
+  );
+  const renderFoeCard = (set: ChampionsSet, i: number) => (
+    <ArenaCard
+      key={`ea-${enemyTeamIdx}-${i}`}
+      set={set}
+      onChange={(next) => updateEnemyMember(i, next)}
+      index={i}
+      onSwap={swapEnemyMembers}
+      role="defender"
+      side="foe"
+      title={`Target ${i + 1}`}
+      attackers={playerBattlers}
+      field={field}
+      roster={compact ? enemyTeam.members : undefined}
+    />
+  );
+
+  useTauriOverlayChrome();
+  useAndroidOverlayChrome();
+  // Global hotkey (Ctrl+Shift+C in the overlay) -> capture the enemy team.
+  useOverlayEvent('overlay-capture-enemy', useCallback(() => {
+    setPhotoAutoCapture(true);
+    setPhotoSide('enemy');
+  }, []));
+
   return (
     <div className={`app${arena ? ' app--arena' : ''}`}>
       <SharedDatalists />
 
-      <header className="app-header">
+      <header className="app-header" data-tauri-drag-region>
         <div className="brand">
-          <div className="brand-exo" title="EXO">
-            <img className="brand-ex" src="/ex.png" alt="EXO" />
-            <BrandLogo />
-          </div>
-          <div className="brand-text">
-            <h1 className="wordmark">CHAMPIONS<span>CALC</span></h1>
-            <span className="reg-badge">
-              {CHAMPIONS_FORMAT.regulation} · Lv{CHAMPIONS_FORMAT.level} · {CHAMPIONS_FORMAT.gameType}
-            </span>
+          <div className="brand-mark">
+            <div className="brand-exo" title="EXO">
+              <img className="brand-ex" src="/ex.png" alt="EXO" />
+              <BrandLogo />
+            </div>
+            <span className="brand-sub">Champions Damage Calculator</span>
           </div>
         </div>
 
-        <WeatherTerrain value={fieldState} onChange={setFieldState} />
+        <div className="view-toggle" role="tablist" aria-label="Layout">
+          <button
+            role="tab"
+            aria-selected={!arena}
+            className={`view-tab${!arena ? ' active' : ''}`}
+            onClick={() => setArena(false)}
+          >
+            Classic
+          </button>
+          <button
+            role="tab"
+            aria-selected={arena}
+            className={`view-tab${arena ? ' active' : ''}`}
+            onClick={() => setArena(true)}
+          >
+            Battle Arena
+          </button>
+        </div>
 
         <div className="header-right">
-          <label className="arena-toggle" title="Switch to the mirrored battle arena layout">
-            <input type="checkbox" checked={arena} onChange={(e) => setArena(e.target.checked)} />
-            Arena
-          </label>
           <button className="reset-btn" onClick={handleResetConditions} title="Clear weather, terrain, screens, statuses and boosts">
-            Reset conditions
+            Reset
           </button>
           <button
             className="theme-toggle"
             onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
-            title="Toggle dark mode"
-            aria-label="Toggle dark mode"
+            title="Toggle light / dark"
+            aria-label="Toggle light / dark"
           >
             {theme === 'dark' ? '☀' : '☾'}
           </button>
+          <TauriWindowControls />
+          <AndroidOverlayControls />
         </div>
       </header>
+
+      {/* Classic: global weather + terrain in their own bar under the header. In
+          arena, the battlefield sits in the field bar between the two sides. */}
+      {!arena && (
+        <div className="battlefield-bar">
+          <span className="bf-label">Battlefield</span>
+          <WeatherTerrain value={fieldState} onChange={setFieldState} />
+          <span className="bf-hint">Side screens shown with each side ↓</span>
+        </div>
+      )}
 
       {arena ? (
         /* Arena: a 2v2 battle. A single management bar up top (both rosters and
@@ -371,76 +444,106 @@ export default function App() {
            left, the enemy's two on the right, each a wide card with the damage it
            takes and a tab to pick which of the opposing two is hitting it. */
         <>
-          {/* Phones in portrait can't fit the wide 2v2 board, so we gate it
-              behind a turn-sideways prompt. Hidden by CSS on desktop and in
-              landscape; when shown, the bar and ground below are hidden too. */}
-          <div className="rotate-gate" role="status">
-            <div className="rotate-gate-card">
-              <svg className="rotate-gate-icon" viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="5" y="2" width="14" height="20" rx="2.5" />
-                <path className="rotate-gate-arrow" d="M2.5 13.5a9 9 0 0 0 8 7" fill="none" />
-              </svg>
-              <p className="rotate-gate-title">Turn your device sideways</p>
-              <p className="rotate-gate-text">
-                Arena is a wide 2v2 board, so it needs a landscape screen. Rotate your phone to play
-                it here, or switch to Classic mode.
-              </p>
-              <button className="reset-btn" onClick={() => setArena(false)}>Use Classic mode instead</button>
+          {/* Phones in portrait can't fit the wide 2v2 board, so on the WEBSITE we
+              gate it behind a turn-sideways prompt. The Android overlay (compact)
+              instead gets a paired board built for portrait, so it skips this. */}
+          {!compact && (
+            <div className="rotate-gate" role="status">
+              <div className="rotate-gate-card">
+                <svg className="rotate-gate-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="5" y="2" width="14" height="20" rx="2.5" />
+                  <path className="rotate-gate-arrow" d="M2.5 13.5a9 9 0 0 0 8 7" fill="none" />
+                </svg>
+                <p className="rotate-gate-title">Turn your device sideways</p>
+                <p className="rotate-gate-text">
+                  Arena is a wide 2v2 board, so it needs a landscape screen. Rotate your phone to play
+                  it here, or switch to Classic mode.
+                </p>
+                <button className="reset-btn" onClick={() => setArena(false)}>Use Classic mode instead</button>
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="arena-bar">
-            <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
-            {playerColumn}
-            {playerConditions}
-            {enemyConditions}
-            {enemyColumn}
-            <div className="arena-flag arena-flag--foe"><span>ENEMY TEAM</span></div>
-          </div>
-
-          <main className="arena-ground">
-            <div className="arena-col arena-col--ally">
-              {playerTeam.members.length === 0
-                ? <p className="results-hint">Add a Pokémon to your team above.</p>
-                : playerTeam.members.slice(0, 2).map((set, i) => (
-                    <ArenaCard
-                      key={`pa-${playerTeamIdx}-${i}`}
-                      set={set}
-                      onChange={(next) => updateMembers('playerTeams', playerTeamIdx, (ms) => ms.map((m, j) => (j === i ? next : m)))}
-                      onRemove={() => removePlayerMember(i)}
-                      index={i}
-                      onSwap={swapPlayerMembers}
-                      role="attacker"
-                      side="ally"
-                      title={`Your ${i + 1}`}
-                      attackers={enemyBattlers}
-                      field={incomingField}
-                    />
-                  ))}
+          {compact ? (
+            <div className="arena-bar">
+              <div className="arena-flag arena-flag--ally"><span>MY TEAM</span></div>
+              {playerColumn}
+              {playerConditions}
+              {enemyConditions}
+              {enemyColumn}
+              <div className="arena-flag arena-flag--foe"><span>ENEMY TEAM</span></div>
             </div>
+          ) : (
+            <>
+              {/* Management bar: your roster, a VS badge, the enemy roster. */}
+              <div className="arena-manage">
+                <ArenaRoster
+                  side="ally"
+                  label="My Team"
+                  teams={playerTeams}
+                  activeIdx={playerTeamIdx}
+                  onSelectTeam={selectPlayerTeam}
+                  onAddTeam={addPlayerTeam}
+                  onActivate={(i) => swapPlayerMembers(i, i < 2 ? i : 1)}
+                  onAddMember={addPlayerMember}
+                  onImport={() => setPasteSide('player')}
+                />
+                <ArenaRoster
+                  side="foe"
+                  label="Enemy Team"
+                  teams={enemyTeams}
+                  activeIdx={enemyTeamIdx}
+                  onSelectTeam={selectEnemyTeam}
+                  onAddTeam={addEnemyTeam}
+                  onActivate={(i) => swapEnemyMembers(i, i < 2 ? i : 1)}
+                  onAddMember={addEnemyMember}
+                  onImport={() => setPasteSide('enemy')}
+                />
+              </div>
+              {/* Field bar: your side | the battlefield | the enemy side. */}
+              <div className="arena-field">
+                {playerConditions}
+                <div className="arena-field-center">
+                  <span className="bf-label">Battlefield</span>
+                  <WeatherTerrain value={fieldState} onChange={setFieldState} />
+                </div>
+                {enemyConditions}
+              </div>
+            </>
+          )}
 
-            <div className="arena-vs"><span>VS</span></div>
+          {compact ? (
+            /* Phone overlay: a paired 2-column board — your #1 vs enemy #1 on the
+               first row, your #2 vs enemy #2 below (scroll for the second row). */
+            <main className="arena-ground arena-ground--paired">
+              {[0, 1].map((i) => (
+                <Fragment key={`pair-${i}`}>
+                  {playerTeam.members[i]
+                    ? renderAllyCard(playerTeam.members[i], i)
+                    : <p className="results-hint">Ajoute un Pokémon à ton équipe.</p>}
+                  {enemyTeam.members[i]
+                    ? renderFoeCard(enemyTeam.members[i], i)
+                    : <p className="results-hint">Ajoute une cible ennemie.</p>}
+                </Fragment>
+              ))}
+            </main>
+          ) : (
+            <main className="arena-ground">
+              <div className="arena-col arena-col--ally">
+                {playerTeam.members.length === 0
+                  ? <p className="results-hint">Add a Pokémon to your team above.</p>
+                  : playerTeam.members.slice(0, 2).map((set, i) => renderAllyCard(set, i))}
+              </div>
 
-            <div className="arena-col arena-col--foe">
-              {enemyTeam.members.length === 0
-                ? <p className="results-hint">Add a target to the enemy team above.</p>
-                : enemyTeam.members.slice(0, 2).map((set, i) => (
-                    <ArenaCard
-                      key={`ea-${enemyTeamIdx}-${i}`}
-                      set={set}
-                      onChange={(next) => updateEnemyMember(i, next)}
-                      onRemove={() => removeEnemyMember(i)}
-                      index={i}
-                      onSwap={swapEnemyMembers}
-                      role="defender"
-                      side="foe"
-                      title={`Target ${i + 1}`}
-                      attackers={playerBattlers}
-                      field={field}
-                    />
-                  ))}
-            </div>
-          </main>
+              <div className="arena-vs"><span>VS</span></div>
+
+              <div className="arena-col arena-col--foe">
+                {enemyTeam.members.length === 0
+                  ? <p className="results-hint">Add a target to the enemy team above.</p>
+                  : enemyTeam.members.slice(0, 2).map((set, i) => renderFoeCard(set, i))}
+              </div>
+            </main>
+          )}
         </>
       ) : (
         <main className="calc-layout">
@@ -477,6 +580,9 @@ export default function App() {
           <p>
             Stats use the Champions Stat Points model (66 SP, 32/stat, perfect IVs).
             Damage by <code>@smogon/calc</code>. Mega &amp; roster data is a work in progress.
+            Type icons by{' '}
+            <a href="https://github.com/partywhale/pokemon-type-icons" target="_blank" rel="noopener noreferrer">partywhale</a>{' '}
+            (MIT).
           </p>
           <p className="footer-credit">
             Made by <a href="https://github.com/SebNotFound" target="_blank" rel="noopener noreferrer">SebNotFound</a>.
@@ -509,7 +615,12 @@ export default function App() {
         />
       )}
 
-      <ImportDialog side={photoSide} onClose={() => setPhotoSide(null)} onImport={handlePhotoImport} />
+      <ImportDialog
+        side={photoSide}
+        autoCapture={photoAutoCapture}
+        onClose={() => { setPhotoSide(null); setPhotoAutoCapture(false); }}
+        onImport={handlePhotoImport}
+      />
       <TeamReportDialog
         open={reportOpen}
         onClose={() => setReportOpen(false)}
