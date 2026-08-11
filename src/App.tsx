@@ -39,16 +39,6 @@ import './App.css';
 
 type TeamKey = 'playerTeams' | 'enemyTeams';
 
-/**
- * Where the previous "Stadium" look still lives.
- *
- * The old design is frozen on the `design-stadium` branch, and Cloudflare Pages
- * publishes every branch at `https://<branch>.<project>.pages.dev`, so it stays
- * usable without keeping two themes in the app. If the project is ever renamed,
- * this is the one line to update.
- */
-const LEGACY_DESIGN_URL = 'https://design-stadium.champions-calc.pages.dev';
-
 const PREVIEW_W = 304;
 /**
  * Place the hover preview next to the hovered row. In the normal layout it pops
@@ -595,9 +585,7 @@ export default function App() {
             (MIT).
           </p>
           <p className="footer-credit">
-            Preferred the old look?{' '}
-            <a href={LEGACY_DESIGN_URL} target="_blank" rel="noopener noreferrer">Use the classic design</a>.
-            {' '}Made by <a href="https://github.com/SebNotFound" target="_blank" rel="noopener noreferrer">SebNotFound</a>.
+            Made by <a href="https://github.com/SebNotFound" target="_blank" rel="noopener noreferrer">SebNotFound</a>.
             If you want to help me,{' '}
             <a className="kofi-link" href="https://ko-fi.com/sebnotfound" target="_blank" rel="noopener noreferrer">buy me a Ko-fi ☕</a>
           </p>
