@@ -255,7 +255,16 @@ export function PokemonEditor({
         onDragEnd={onHeaderDragEnd}
         title={draggable ? 'Drag to swap targets' : undefined}
       >
-        <div className="poke-ring">
+        {/* The sprite doubles as the drag handle. The header itself is draggable,
+            but the species field fills most of it and an input swallows the
+            mousedown, so grabbing the Pokémon is the reliable gesture. */}
+        <div
+          className="poke-ring"
+          draggable={draggable}
+          onDragStart={onHeaderDragStart}
+          onDragEnd={onHeaderDragEnd}
+          title={draggable ? 'Drag onto another card to swap' : undefined}
+        >
           <Sprite className="mon-sprite" species={set.megaForme ?? set.species} />
         </div>
         <div className="mon-title-line">

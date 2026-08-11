@@ -957,3 +957,8 @@
 }
 .classic-note-close:hover { background: var(--panel-3); color: var(--text); }
 @media (max-width: 560px) { .classic-note { left: 12px; right: 12px; top: 10px; transform: none; max-width: none; } }
+
+/* The sprite is the drag handle on a draggable card (the species field fills the
+   rest of the header and would swallow the gesture). */
+.mon-editor-head--drag .poke-ring { cursor: grab; }
+.mon-editor-head--drag .poke-ring:active { cursor: grabbing; }
