@@ -39,6 +39,14 @@ import './App.css';
 
 type TeamKey = 'playerTeams' | 'enemyTeams';
 
+/** Terrain tints the battlefield bar's edge, keyed by the type each one belongs to. */
+const TERRAIN_COLORS: Record<string, string> = {
+  Electric: '#f2c944',
+  Grassy: '#63bc5a',
+  Psychic: '#f56aa0',
+  Misty: '#e68fb8',
+};
+
 const PREVIEW_W = 304;
 /**
  * Place the hover preview next to the hovered row. In the normal layout it pops
@@ -441,10 +449,13 @@ export default function App() {
       {/* Classic: global weather + terrain in their own bar under the header. In
           arena, the battlefield sits in the field bar between the two sides. */}
       {!arena && (
-        <div className="battlefield-bar">
+        <div
+          className="battlefield-bar"
+          data-weather={fieldState.weather ?? ''}
+          style={fieldState.terrain ? { borderColor: TERRAIN_COLORS[fieldState.terrain] } : undefined}
+        >
           <span className="bf-label">Battlefield</span>
           <WeatherTerrain value={fieldState} onChange={setFieldState} />
-          <span className="bf-hint">Side screens shown with each side ↓</span>
         </div>
       )}
 

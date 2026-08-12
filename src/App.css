@@ -1015,3 +1015,30 @@
 .mon-editor--defender .spread-row .spread-label { color: var(--foe); }
 .mon-editor--defender .spread-slider,
 .mon-editor--defender .spread-row .spread-slider { accent-color: var(--foe); }
+
+/* ---- Battlefield bar reflects the field ----
+   Weather washes the bar's surface, terrain colours its edge, so the conditions
+   are readable at a glance instead of only inside the two pickers. Kept faint:
+   this is a backdrop, not another thing competing for attention. */
+.battlefield-bar { border: 2px solid transparent; transition: background 0.25s, border-color 0.25s; }
+.battlefield-bar[data-weather='Sun'] { background: linear-gradient(100deg, color-mix(in srgb, #f5c542 22%, var(--panel)), var(--panel) 62%); }
+.battlefield-bar[data-weather='Rain'] { background: linear-gradient(100deg, color-mix(in srgb, #5aa9e6 22%, var(--panel)), var(--panel) 62%); }
+.battlefield-bar[data-weather='Sand'] { background: linear-gradient(100deg, color-mix(in srgb, #dbaf5a 24%, var(--panel)), var(--panel) 62%); }
+.battlefield-bar[data-weather='Snow'] { background: linear-gradient(100deg, color-mix(in srgb, #74cec0 22%, var(--panel)), var(--panel) 62%); }
+
+/* ---- Narrow screens: team rosters as a grid ----
+   Once the three columns collapse into one, a vertical list of six Pokémon eats
+   most of the screen before the calculator itself. They tile instead: three per
+   row, dropping to two only on the narrowest phones. Desktop is untouched, the
+   list layout there is the one that fits beside the cards. */
+@media (max-width: 1100px) {
+  .member-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .member-list .member-add { grid-column: 1 / -1; }
+  .member { padding: 7px 8px; gap: 7px; }
+  .member-ring { width: 32px; height: 32px; }
+  .member-sprite { width: 26px; height: 26px; }
+  .member-name { font-size: 11.5px; }
+}
+@media (max-width: 420px) {
+  .member-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
