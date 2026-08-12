@@ -82,6 +82,13 @@
   --stat-hp: #57c77b; --stat-atk: #f0813c; --stat-def: #f5c542;
   --stat-spa: #59a9e8; --stat-spd: #6dd3b5; --stat-spe: #ee6fa0;
 
+  /* Snowflakes: white reads on the dark surface, but vanishes on the light one. */
+  --flake: #ffffff;
+
+  /* Tells the browser to paint native controls dark: select popups, spinners
+     and scrollbars follow the theme instead of staying white. */
+  color-scheme: dark;
+
   font: 700 14px/1.5 var(--font-body);
   color: var(--text);
   background: var(--bg);
@@ -91,6 +98,7 @@
 
 /* ---- Light "Pokedex" theme — the bright hero look (screens 2a / 3a). ---- */
 :root[data-theme='light'] {
+  color-scheme: light;
   --bg: #eef1f6;
   --bg-2: #f4f6fa;
   --bg-tint-1: #fbe9ef;
@@ -132,6 +140,7 @@
   --grid: rgba(40, 70, 120, 0.04);
   --shadow: 0 12px 30px rgba(31, 41, 84, 0.10);
   --shadow-lg: 0 14px 38px rgba(31, 41, 84, 0.12);
+  --flake: #6ba8d6;
 }
 
 * { box-sizing: border-box; }
