@@ -452,6 +452,7 @@ export default function App() {
         <div
           className="battlefield-bar"
           data-weather={fieldState.weather ?? ''}
+          data-terrain={fieldState.terrain ?? ''}
           style={fieldState.terrain ? { borderColor: TERRAIN_COLORS[fieldState.terrain] } : undefined}
         >
           <span className="bf-label">Battlefield</span>
@@ -512,7 +513,12 @@ export default function App() {
                   onImport={() => setPasteSide('player')}
                 />
                 {playerConditions}
-                <div className="arena-field-center">
+                <div
+                  className="arena-field-center battlefield-bar"
+                  data-weather={fieldState.weather ?? ''}
+                  data-terrain={fieldState.terrain ?? ''}
+                  style={fieldState.terrain ? { borderColor: TERRAIN_COLORS[fieldState.terrain] } : undefined}
+                >
                   <span className="bf-label">Battlefield</span>
                   <WeatherTerrain value={fieldState} onChange={setFieldState} />
                 </div>

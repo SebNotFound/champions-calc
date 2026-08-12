@@ -78,7 +78,7 @@
 .battlefield-bar .weather-terrain .field > span { font-size: 9px; }
 .battlefield-bar .weather-terrain .field select,
 .battlefield-bar .weather-terrain .field .select-menu-btn {
-  background: transparent; border: none; padding: 5px 6px; width: auto; min-width: 92px;
+  background: var(--panel-3); color: var(--text); border: none; padding: 5px 6px; width: auto; min-width: 92px;
 }
 
 /* ---- Field labels (shared) ---- */
@@ -1041,4 +1041,66 @@
 }
 @media (max-width: 420px) {
   .member-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---- Weather and terrain as scenery ----
+   A wash of colour said "something is on", but not what. Each condition now
+   draws itself on the bar: sun burns in from the left, rain and snow fall as
+   flecks, sand drifts, grass grows blades along the bottom edge, electric arcs
+   across it, psychic fades through, misty hazes over. Everything is decorative
+   and sits behind the controls (pointer-events: none). */
+.battlefield-bar { position: relative; overflow: hidden; }
+.battlefield-bar > * { position: relative; z-index: 1; }
+.battlefield-bar::before,
+.battlefield-bar::after { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+
+/* Sun: a warm disc glowing from the left. */
+.battlefield-bar[data-weather='Sun']::before {
+  background:
+    radial-gradient(circle at 42px 50%, #ffd76a 0 14px, rgba(255, 215, 106, 0.45) 15px 22px, transparent 42px),
+    linear-gradient(100deg, color-mix(in srgb, #f5c542 20%, transparent), transparent 55%);
+}
+/* Rain: pale streaks slanting across. */
+.battlefield-bar[data-weather='Rain']::before {
+  background:
+    repeating-linear-gradient(72deg, rgba(90, 169, 230, 0.42) 0 2px, transparent 2px 15px),
+    linear-gradient(100deg, color-mix(in srgb, #5aa9e6 18%, transparent), transparent 60%);
+}
+/* Snow: soft flecks. */
+.battlefield-bar[data-weather='Snow']::before {
+  background:
+    radial-gradient(circle at 12% 30%, #fff 0 2.5px, transparent 3px),
+    radial-gradient(circle at 27% 72%, #fff 0 2px, transparent 2.5px),
+    radial-gradient(circle at 44% 26%, #fff 0 2.5px, transparent 3px),
+    radial-gradient(circle at 63% 66%, #fff 0 2px, transparent 2.5px),
+    radial-gradient(circle at 81% 36%, #fff 0 2.5px, transparent 3px),
+    radial-gradient(circle at 92% 74%, #fff 0 2px, transparent 2.5px),
+    linear-gradient(100deg, color-mix(in srgb, #74cec0 16%, transparent), transparent 60%);
+}
+/* Sand: drifting horizontal grain. */
+.battlefield-bar[data-weather='Sand']::before {
+  background:
+    repeating-linear-gradient(4deg, rgba(219, 175, 90, 0.34) 0 3px, transparent 3px 11px),
+    linear-gradient(100deg, color-mix(in srgb, #dbaf5a 20%, transparent), transparent 60%);
+}
+
+/* Terrain draws along the bottom, where the ground would be. */
+.battlefield-bar[data-terrain='Grassy']::after {
+  background:
+    repeating-linear-gradient(88deg, color-mix(in srgb, var(--type-grass) 62%, transparent) 0 3px, transparent 3px 12px);
+  top: auto; height: 12px; mask-image: linear-gradient(transparent, #000);
+  -webkit-mask-image: linear-gradient(transparent, #000);
+}
+.battlefield-bar[data-terrain='Electric']::after {
+  background: repeating-linear-gradient(115deg, color-mix(in srgb, var(--type-electric) 55%, transparent) 0 2px, transparent 2px 22px);
+  top: auto; height: 14px;
+}
+.battlefield-bar[data-terrain='Psychic']::after {
+  background: linear-gradient(0deg, color-mix(in srgb, var(--type-psychic) 34%, transparent), transparent 70%);
+}
+.battlefield-bar[data-terrain='Misty']::after {
+  background:
+    radial-gradient(ellipse 60% 70% at 20% 100%, color-mix(in srgb, var(--type-fairy) 40%, transparent), transparent),
+    radial-gradient(ellipse 55% 65% at 62% 100%, color-mix(in srgb, var(--type-fairy) 32%, transparent), transparent),
+    radial-gradient(ellipse 50% 60% at 95% 100%, color-mix(in srgb, var(--type-fairy) 36%, transparent), transparent);
 }
