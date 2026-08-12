@@ -46,9 +46,10 @@
   --dmg-ally-tint: #16202f;    /* damage pane, your side */
   --dmg-foe-tint: #241618;     /* damage pane, enemy side */
 
-  /* The "Neo-Arcade" active accent: lime on dark for the selected tab/toggle. */
-  --active: #c6ff3a;
-  --active-ink: #101114;
+  /* Selected tab / toggle. The same blue as the rest of your side, rather than a
+     second accent colour competing with it. */
+  --active: var(--ally);
+  --active-ink: #0b1220;
 
   --safe: #49c76a;             /* survives / low % */
   --warn: #f2a83e;             /* 2-3HKO */

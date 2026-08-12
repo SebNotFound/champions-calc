@@ -983,3 +983,35 @@
 .arena-bar-one > .arena-field-center { flex: none; align-self: center; background: var(--panel-3); box-shadow: none; }
 /* The enemy half mirrors, so its conditions read outward from the centre. */
 .arena-bar-one > .side-cond--foe { justify-content: flex-end; }
+
+/* Stack weather over terrain in the arena bar: the centre block gets narrower,
+   which hands the width back to the two rosters, so their sprites can grow. */
+.arena-bar-one .arena-field-center .weather-terrain { flex-direction: column; align-items: stretch; gap: 6px; }
+.arena-bar-one .arena-field-center .weather-terrain .field { justify-content: space-between; }
+.arena-bar-one .arena-tile-ring { width: 42px; height: 42px; }
+.arena-bar-one .arena-tile-sprite { width: 36px; height: 36px; }
+
+/* ---- Night HUD: calmer card headers ----
+   The type gradients are mixed for the bright theme, where they sit against
+   white. On the dark surface the same colours glare, so a dark veil is laid over
+   the gradient itself. It goes under the content (inset shadow), so the sprite,
+   the name and the type badges stay as crisp as before. */
+[data-theme='dark'] .mon-editor-head {
+  box-shadow: inset 0 0 0 9999px rgba(12, 14, 18, 0.32);
+}
+
+/* ---- Allegiance colour on team tabs and stat points ----
+   The active team tab and the stat bars follow the side they belong to (blue for
+   yours, red for theirs) instead of the per-stat rainbow, which read as one more
+   palette competing with the two sides. */
+.arena-roster--foe .arena-team-tab.active,
+.team-col--foe .slot.active { background: var(--foe); color: #fff; }
+
+.mon-editor--attacker .spread-label,
+.mon-editor--attacker .spread-row .spread-label { color: var(--ally); }
+.mon-editor--attacker .spread-slider,
+.mon-editor--attacker .spread-row .spread-slider { accent-color: var(--ally); }
+.mon-editor--defender .spread-label,
+.mon-editor--defender .spread-row .spread-label { color: var(--foe); }
+.mon-editor--defender .spread-slider,
+.mon-editor--defender .spread-row .spread-slider { accent-color: var(--foe); }
