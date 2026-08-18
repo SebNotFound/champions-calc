@@ -510,7 +510,9 @@ export default function App() {
                   onAddTeam={addPlayerTeam}
                   onActivate={(i) => swapPlayerMembers(i, i < 2 ? i : 1)}
                   onAddMember={addPlayerMember}
-                  onImport={() => setPasteSide('player')}
+                  onImportText={() => setPasteSide('player')}
+                  onImportPhoto={() => { setPhotoAutoCapture(false); setPhotoSide('player'); }}
+                  onImportReport={() => setReportOpen(true)}
                 />
                 {playerConditions}
                 <div
@@ -532,7 +534,8 @@ export default function App() {
                   onAddTeam={addEnemyTeam}
                   onActivate={(i) => swapEnemyMembers(i, i < 2 ? i : 1)}
                   onAddMember={addEnemyMember}
-                  onImport={() => setPasteSide('enemy')}
+                  onImportText={() => setPasteSide('enemy')}
+                  onImportPhoto={() => { setPhotoAutoCapture(false); setPhotoSide('enemy'); }}
                 />
               </div>
             </>

@@ -33,12 +33,17 @@ interface Props {
   /** Bring the clicked member into the front line (swap with slot 0 or 1). */
   onActivate: (index: number) => void;
   onAddMember: () => void;
-  /** Opens the side's import dialog (text / photo). */
-  onImport: () => void;
+  /** Paste a pokepaste / Showdown block. */
+  onImportText: () => void;
+  /** Read a Team Preview screenshot. */
+  onImportPhoto: () => void;
+  /** Read your own team's in-game report (player side only). */
+  onImportReport?: () => void;
 }
 
 export function ArenaRoster({
-  side, label, teams, activeIdx, onSelectTeam, onAddTeam, onActivate, onAddMember, onImport,
+  side, label, teams, activeIdx, onSelectTeam, onAddTeam, onActivate, onAddMember,
+  onImportText, onImportPhoto, onImportReport,
 }: Props) {
   const team = teams[activeIdx];
   const members = team.members;
@@ -61,7 +66,12 @@ export function ArenaRoster({
           {teams.length < MAX_TEAMS && (
             <button className="arena-team-tab arena-team-tab--add" onClick={onAddTeam} title="New team" aria-label="New team">+</button>
           )}
-          <button className="arena-team-tab arena-team-tab--import" onClick={onImport} title="Import a team">Import</button>
+          {/* The same three import routes the classic team box offers. */}
+          <button className="arena-team-tab arena-team-tab--import" onClick={onImportText} title="Import: paste a pokepaste / Showdown team">Text</button>
+          <button className="arena-team-tab arena-team-tab--import" onClick={onImportPhoto} title="Import: from a Team Preview screenshot or photo">Photo</button>
+          {onImportReport && (
+            <button className="arena-team-tab arena-team-tab--import" onClick={onImportReport} title="Import: from your team's in-game Stats + Moves screenshots">Report</button>
+          )}
         </div>
       </div>
 
