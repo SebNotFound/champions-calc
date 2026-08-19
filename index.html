@@ -4,7 +4,46 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Champions Damage Calc</title>
+
+    <!-- The title and description are what search results actually show, so the
+         terms people search for live here rather than hidden in the page. -->
+    <title>Pokémon Champions Damage Calculator — VGC 2v2 Calc | EXO Calc</title>
+    <meta
+      name="description"
+      content="Free Pokémon Champions damage calculator for VGC doubles. Build both teams, see every move's damage and KO chance in both directions, with the 66 Stat Points model, Megas, weather, terrain and screens. A Showdown calc alternative built for Champions. No sign up, runs in your browser."
+    />
+    <meta name="keywords" content="pokemon champions damage calculator, champions calc, vgc 2v2 calc, vgc doubles calculator, showdown calc alternative, pokemon damage calculator, stat points calculator, mega evolution calculator" />
+    <link rel="canonical" href="https://www.exo-calc.com/" />
+    <meta name="robots" content="index, follow" />
+    <meta name="theme-color" content="#eef1f6" />
+
+    <!-- Link previews on Discord, Twitter and the rest. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="EXO Calc" />
+    <meta property="og:title" content="Pokémon Champions Damage Calculator — VGC 2v2" />
+    <meta property="og:description" content="Free damage calculator for Pokémon Champions VGC doubles: both teams side by side, damage and KO chances in both directions, Stat Points, Megas, weather and screens." />
+    <meta property="og:url" content="https://www.exo-calc.com/" />
+    <meta property="og:image" content="https://www.exo-calc.com/ex.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Pokémon Champions Damage Calculator — VGC 2v2" />
+    <meta name="twitter:description" content="Free damage calculator for Pokémon Champions VGC doubles. No sign up, runs in your browser." />
+    <meta name="twitter:image" content="https://www.exo-calc.com/ex.png" />
+
+    <!-- Structured data: tells search engines what this page is, which is what
+         earns the richer result rather than any amount of repeated wording. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "EXO Calc — Pokémon Champions Damage Calculator",
+        "url": "https://www.exo-calc.com/",
+        "applicationCategory": "GameApplication",
+        "operatingSystem": "Any browser",
+        "description": "Free damage calculator for Pokémon Champions VGC doubles, with the Champions Stat Points model, Mega Evolutions, weather, terrain and per-side screens.",
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "author": { "@type": "Person", "name": "SebNotFound" }
+      }
+    </script>
     <!-- Pokedex redesign type system: Nunito everywhere (rounded, friendly,
          game-like), weights 600 to 900. Falls back to a system stack offline. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -15,7 +54,18 @@
     />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <noscript>
+        <h1>Pokémon Champions Damage Calculator</h1>
+        <p>
+          A free damage calculator for Pokémon Champions VGC 2v2 doubles. Set up your team and the
+          enemy team, and see how much every move does in both directions, with the Champions Stat
+          Points model (66 points), Mega Evolutions, weather, terrain and per-side screens. Built as
+          a Showdown calc alternative for Champions. This page needs JavaScript to run the
+          calculator.
+        </p>
+      </noscript>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -406,7 +406,9 @@ export default function App() {
               <img className="brand-ex" src="/ex.png" alt="EXO" />
               <BrandLogo />
             </div>
-            <span className="brand-sub">Champions Damage Calculator</span>
+            {/* The page's one h1: real visible text, which is what search engines
+                weigh, rather than anything tucked away out of sight. */}
+            <h1 className="brand-sub">Champions Damage Calculator</h1>
           </div>
         </div>
 

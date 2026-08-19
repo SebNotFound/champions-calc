@@ -42,7 +42,7 @@
   fill: none; stroke: var(--ally); stroke-width: 2.6; stroke-linecap: round;
 }
 .brand-logo-dot { fill: var(--ally); stroke: none; }
-.brand-sub { font-size: 11px; font-weight: 800; color: var(--text-dim); white-space: nowrap; }
+.brand-sub { margin: 0; font-size: 11px; font-weight: 800; color: var(--text-dim); white-space: nowrap; }
 /* Classic | Battle Arena segmented toggle (centre column of the header grid). */
 .view-toggle { display: flex; background: var(--panel-3); border-radius: 13px; padding: 4px; flex: none; }
 .view-tab {
