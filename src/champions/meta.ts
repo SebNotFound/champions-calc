@@ -47,7 +47,7 @@ export interface MoveInfo {
 export function moveInfo(name: string): MoveInfo | undefined {
   if (!name || !name.trim()) return undefined;
   const m = metaGen.moves.get(name);
-  if (!m) return undefined;
+  if (!m?.exists) return undefined;
   return { type: m.type, category: m.category, pp: m.pp, basePower: m.basePower };
 }
 
