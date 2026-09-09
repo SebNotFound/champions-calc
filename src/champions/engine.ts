@@ -22,6 +22,7 @@ import type { State } from '@smogon/calc';
 import { CHAMPIONS_GEN, CHAMPIONS_FORMAT } from './format';
 import { computeChampionsStats } from './stats';
 import { getMega, MEGAS } from './data/megas';
+import { championsMoveChange } from './data/moves';
 import type { ChampionsSet, StatTable } from './types';
 
 /** A loaded game generation (gen 9 mechanics, which Champions reuses). */
@@ -41,19 +42,20 @@ export function getGen(): Generation {
 //
 // A few new mega abilities don't exist in @smogon/calc, so we apply their
 // effects ourselves by transforming the calc inputs:
-//   • Dragonize      — Normal-type moves become Dragon-type with the -ate ×1.2.
-//   • Mega Sol       — the holder always attacks as if the sun is out.
-//   • Piercing Drill — like Unseen Fist (contact hits through Protect); mapped
-//                      to Unseen Fist so the engine handles it natively.
-//   • Spicy Spray    — (Mega Scovillain) burns whatever damages it. That's a
+//   • Dragonize: Normal-type moves become Dragon-type with the -ate ×1.2.
+//   • Mega Sol: the holder always attacks as if the sun is out.
+//   • Piercing Drill: follows the updated Unseen Fist rule. Contact moves pass
+//                     through Protect at one quarter of their normal damage.
+//   • Aura Guard: halves damage received from contact moves.
+//   • Spicy Spray: (Mega Scovillain) burns whatever damages it. That's a
 //                      reactive status, not a per-hit damage change, so the calc
 //                      needs no adjustment (set the attacker's status to Burn to
 //                      model the resulting Attack drop on follow-up hits).
-//   • Eelevate       — (Mega Eelektross) floats like Levitate (Ground immunity +
+//   • Eelevate: (Mega Eelektross) floats like Levitate (Ground immunity +
 //                      hazard immunity); mapped to Levitate. Its other half,
 //                      "boost the highest stat on KO", is a post-KO effect that a
 //                      damage calc doesn't model.
-//   • Fire Mane      — (Mega Pyroar) +50% power to the holder's Fire-type moves.
+//   • Fire Mane: (Mega Pyroar) +50% power to the holder's Fire-type moves.
 // ---------------------------------------------------------------------------
 
 /** Custom abilities mapped to an equivalent ability @smogon/calc understands. */
@@ -64,6 +66,18 @@ const ABILITY_ALIAS: Record<string, string> = {
 
 /** Moves that "-ate" abilities never retype (their type is already variable). */
 const ATE_EXCLUDED = new Set(['Weather Ball', 'Terrain Pulse', 'Struggle']);
+
+const ABILITY_IGNORING_MOVES = new Set([
+  'G-Max Drum Solo',
+  'G-Max Fire Ball',
+  'G-Max Hydrosnipe',
+  'Light That Burns the Sky',
+  'Menacing Moonraze Maelstrom',
+  'Moongeist Beam',
+  'Photon Geyser',
+  'Searing Sunraze Smash',
+  'Sunsteel Strike',
+]);
 
 // ---------------------------------------------------------------------------
 // Building a Pokémon
@@ -156,6 +170,12 @@ const round1 = (n: number) => Math.round(n * 10) / 10;
 
 type GameTypeName = CalcResult['move']['type'];
 
+interface MoveOverrides {
+  basePower?: number;
+  type?: GameTypeName;
+  flags?: { slicing?: 1; punch?: 1 };
+}
+
 /**
  * Moves that deal a fraction of the target's CURRENT HP. @smogon/calc models
  * these as 0-BP moves (it doesn't implement the HP-fraction mechanic), so it
@@ -215,19 +235,30 @@ export function summarize(result: CalcResult): DamageSummary {
  */
 function prepareMoveAndField(attacker: Pokemon, moveName: string, field: Field): { move: Move; field: Field } {
   const gen = getGen();
-  let move = new Move(gen, moveName);
+  const change = championsMoveChange(moveName);
+  let overrides: MoveOverrides = {
+    ...(change?.basePower !== undefined ? { basePower: change.basePower } : {}),
+    ...(change?.type ? { type: change.type } : {}),
+    ...((change?.slicing || change?.punching) ? {
+      flags: {
+        ...(change.slicing ? { slicing: 1 as const } : {}),
+        ...(change.punching ? { punch: 1 as const } : {}),
+      },
+    } : {}),
+  };
+  let move = new Move(gen, moveName, { overrides: overrides as never });
 
   if (attacker.hasAbility('Dragonize') && move.type === 'Normal' && !ATE_EXCLUDED.has(move.name)) {
     // Overrides survive the engine's internal clone (unlike mutating move.type).
-    move = new Move(gen, moveName, {
-      overrides: { type: 'Dragon', basePower: Math.round(move.bp * 1.2) },
-    });
+    overrides = { ...overrides, type: 'Dragon', basePower: Math.round(move.bp * 1.2) };
+    move = new Move(gen, moveName, { overrides: overrides as never });
   }
 
   // Fire Mane: +50% to the holder's damaging Fire moves. (A Dragonized move is
   // Dragon, never Fire, so the two never collide.)
   if (attacker.hasAbility('Fire Mane') && move.type === 'Fire' && move.bp > 0) {
-    move = new Move(gen, moveName, { overrides: { basePower: Math.round(move.bp * 1.5) } });
+    overrides = { ...overrides, basePower: Math.round(move.bp * 1.5) };
+    move = new Move(gen, moveName, { overrides: overrides as never });
   }
 
   let resolvedField = field;
@@ -239,6 +270,54 @@ function prepareMoveAndField(attacker: Pokemon, moveName: string, field: Field):
   return { move, field: resolvedField };
 }
 
+function pokemonRound(value: number): number {
+  return value % 1 > 0.5 ? Math.ceil(value) : Math.floor(value);
+}
+
+function scaleDamage(damage: CalcResult['damage'], numerator: number, denominator: number): CalcResult['damage'] {
+  const scaleRoll = (roll: number) => roll === 0
+    ? 0
+    : Math.max(1, pokemonRound((roll * numerator) / denominator));
+
+  if (typeof damage === 'number') return scaleRoll(damage);
+  if (typeof damage[0] === 'number') return (damage as number[]).map(scaleRoll);
+  return (damage as number[][]).map((rolls) => rolls.map(scaleRoll));
+}
+
+function calculateChampions(
+  attacker: Pokemon,
+  defender: Pokemon,
+  move: Move,
+  field: Field,
+): CalcResult {
+  const result = calculate(getGen(), attacker, defender, move, field);
+  const resolvedMove = result.move;
+
+  if (
+    field.defenderSide.isProtected
+    && attacker.hasAbility('Unseen Fist')
+    && resolvedMove.flags.contact
+    && !resolvedMove.breaksProtect
+  ) {
+    result.damage = scaleDamage(result.damage, 1, 4);
+  }
+
+  const ignoresAuraGuard = (
+    attacker.hasAbility('Mold Breaker', 'Teravolt', 'Turboblaze')
+    || ABILITY_IGNORING_MOVES.has(resolvedMove.name)
+  ) && !defender.hasItem('Ability Shield');
+  if (
+    defender.hasAbility('Aura Guard')
+    && resolvedMove.flags.contact
+    && !attacker.hasAbility('Long Reach')
+    && !ignoresAuraGuard
+  ) {
+    result.damage = scaleDamage(result.damage, 1, 2);
+  }
+
+  return result;
+}
+
 /** Calculate one attacker's move against one defender. */
 export function calcOne(
   attacker: Pokemon,
@@ -247,7 +326,7 @@ export function calcOne(
   field: Field = makeField(),
 ): DamageSummary {
   const { move, field: resolved } = prepareMoveAndField(attacker, moveName, field);
-  return summarize(calculate(getGen(), attacker, defender, move, resolved));
+  return summarize(calculateChampions(attacker, defender, move, resolved));
 }
 
 /**
@@ -262,10 +341,9 @@ export function calcSpread(
   moveName: string,
   field: Field = makeField(),
 ): DamageSummary[] {
-  const gen = getGen();
   const { move, field: resolved } = prepareMoveAndField(attacker, moveName, field);
   return defenders.map((defender) =>
-    summarize(calculate(gen, attacker, defender, move, resolved)),
+    summarize(calculateChampions(attacker, defender, move, resolved)),
   );
 }
 

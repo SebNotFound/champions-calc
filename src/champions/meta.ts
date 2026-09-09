@@ -12,6 +12,7 @@ import { Dex } from '@pkmn/dex';
 import { Generations } from '@pkmn/data';
 import { Sprites } from '@pkmn/img';
 import { getMega } from './data/megas';
+import { championsMoveChange, isChampionsMoveAvailable } from './data/moves';
 import championsSprites from './data/champions-sprites.json';
 
 /**
@@ -48,7 +49,13 @@ export function moveInfo(name: string): MoveInfo | undefined {
   if (!name || !name.trim()) return undefined;
   const m = metaGen.moves.get(name);
   if (!m?.exists) return undefined;
-  return { type: m.type, category: m.category, pp: m.pp, basePower: m.basePower };
+  const change = championsMoveChange(m.name);
+  return {
+    type: change?.type ?? m.type,
+    category: m.category,
+    pp: change?.pp ?? m.pp,
+    basePower: change?.basePower ?? m.basePower,
+  };
 }
 
 // Learnsets are loaded lazily (and are large), so cache the resolved move lists.
@@ -68,6 +75,7 @@ export async function speciesMoves(species: string): Promise<string[]> {
     ? Object.keys(learnable)
         .map((id) => metaGen.moves.get(id)?.name as string | undefined)
         .filter((n): n is string => !!n)
+        .filter((name) => isChampionsMoveAvailable(species, name))
         .sort()
     : [];
 

@@ -144,6 +144,162 @@ describe('custom Champions mega abilities', () => {
     const megaEel = buildPokemon(set({ species: 'Eelektross', megaForme: 'Eelektross-Mega' }));
     expect(calcOne(chomp, megaEel, 'Earthquake').maxDamage).toBe(0);
   });
+
+  it('Aura Guard halves damage from contact moves', () => {
+    const attacker = buildPokemon(set({
+      species: 'Garchomp',
+      nature: 'Adamant',
+      statPoints: { ...emptySpread(), atk: 32 },
+    }));
+    const auraGuard = buildPokemon(set({ species: 'Lucario', ability: 'Aura Guard' }));
+    const noGuard = buildPokemon(set({ species: 'Lucario', ability: 'Inner Focus' }));
+
+    const guardedContact = calcOne(attacker, auraGuard, 'Dragon Claw').maxDamage;
+    const plainContact = calcOne(attacker, noGuard, 'Dragon Claw').maxDamage;
+    expect(guardedContact / plainContact).toBeGreaterThan(0.45);
+    expect(guardedContact / plainContact).toBeLessThan(0.55);
+  });
+
+  it('Aura Guard leaves non-contact damage unchanged', () => {
+    const attacker = buildPokemon(set({
+      species: 'Garchomp',
+      nature: 'Adamant',
+      statPoints: { ...emptySpread(), atk: 32 },
+    }));
+    const auraGuard = buildPokemon(set({ species: 'Lucario', ability: 'Aura Guard' }));
+    const noGuard = buildPokemon(set({ species: 'Lucario', ability: 'Inner Focus' }));
+
+    expect(calcOne(attacker, auraGuard, 'Earthquake').maxDamage)
+      .toBe(calcOne(attacker, noGuard, 'Earthquake').maxDamage);
+  });
+
+  it.each(['Long Reach', 'Mold Breaker'])(
+    '%s bypasses the contact reduction from Aura Guard',
+    (ability) => {
+      const attacker = buildPokemon(set({
+        species: 'Garchomp',
+        ability,
+        nature: 'Adamant',
+        statPoints: { ...emptySpread(), atk: 32 },
+      }));
+      const auraGuard = buildPokemon(set({ species: 'Lucario', ability: 'Aura Guard' }));
+      const noGuard = buildPokemon(set({ species: 'Lucario', ability: 'Inner Focus' }));
+
+      expect(calcOne(attacker, auraGuard, 'Dragon Claw').maxDamage)
+        .toBe(calcOne(attacker, noGuard, 'Dragon Claw').maxDamage);
+    },
+  );
+
+  it('ability-ignoring moves bypass Aura Guard', () => {
+    const attacker = buildPokemon(set({
+      species: 'Solgaleo',
+      nature: 'Adamant',
+      statPoints: { ...emptySpread(), atk: 32 },
+    }));
+    const auraGuard = buildPokemon(set({ species: 'Lucario', ability: 'Aura Guard' }));
+    const noGuard = buildPokemon(set({ species: 'Lucario', ability: 'Inner Focus' }));
+
+    expect(calcOne(attacker, auraGuard, 'Sunsteel Strike').maxDamage)
+      .toBe(calcOne(attacker, noGuard, 'Sunsteel Strike').maxDamage);
+  });
+
+  it.each([
+    ['Unseen Fist', 'Golurk', 'Golurk-Mega'],
+    ['Piercing Drill', 'Excadrill', 'Excadrill-Mega'],
+  ] as const)(
+    '%s deals one quarter damage through Protect',
+    (_ability, species, megaForme) => {
+      const attacker = buildPokemon(set({
+        species,
+        megaForme,
+        nature: 'Adamant',
+        statPoints: { ...emptySpread(), atk: 32 },
+      }));
+      const defender = buildPokemon(set({ species: 'Snorlax' }));
+      const open = calcOne(attacker, defender, 'Drain Punch').maxDamage;
+      const protectedHit = calcOne(
+        attacker,
+        defender,
+        'Drain Punch',
+        makeField({ defenderSide: { isProtected: true } }),
+      ).maxDamage;
+
+      expect(protectedHit).toBeGreaterThan(0);
+      expect(Math.abs(protectedHit - open / 4)).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it('moves that break Protect still deal full damage with Unseen Fist', () => {
+    const attacker = buildPokemon(set({
+      species: 'Golurk',
+      megaForme: 'Golurk-Mega',
+      nature: 'Adamant',
+      statPoints: { ...emptySpread(), atk: 32 },
+    }));
+    const defender = buildPokemon(set({ species: 'Snorlax' }));
+    const open = calcOne(attacker, defender, 'Hyper Drill').maxDamage;
+    const protectedHit = calcOne(
+      attacker,
+      defender,
+      'Hyper Drill',
+      makeField({ defenderSide: { isProtected: true } }),
+    ).maxDamage;
+
+    expect(protectedHit).toBe(open);
+  });
+
+  it.each(['Crush Claw', 'Shadow Claw', 'Dragon Claw'])(
+    'Sharpness boosts Champions slicing move %s',
+    (move) => {
+      const sharp = buildPokemon(set({ species: 'Absol', ability: 'Sharpness' }));
+      const plain = buildPokemon(set({ species: 'Absol', ability: 'Pressure' }));
+      const defender = buildPokemon(set({ species: 'Cresselia' }));
+
+      expect(calcOne(sharp, defender, move).maxDamage)
+        .toBeGreaterThan(calcOne(plain, defender, move).maxDamage);
+    },
+  );
+});
+
+describe('Champions move balance', () => {
+  it('uses the Champions power for Slash in damage calculations', () => {
+    const attacker = buildPokemon(set({
+      species: 'Persian',
+      nature: 'Adamant',
+      statPoints: { ...emptySpread(), atk: 32 },
+    }));
+    const defender = buildPokemon(set({ species: 'Snorlax' }));
+
+    expect(calcOne(attacker, defender, 'Slash').maxDamage)
+      .toBeGreaterThan(calcOne(attacker, defender, 'Facade').maxDamage);
+  });
+
+  it('lets Iron Fist boost Double Shock as a punching move', () => {
+    const ironFist = buildPokemon(set({
+      species: 'Pawmot',
+      ability: 'Iron Fist',
+      nature: 'Adamant',
+      statPoints: { ...emptySpread(), atk: 32 },
+    }));
+    const voltAbsorb = buildPokemon(set({
+      species: 'Pawmot',
+      ability: 'Volt Absorb',
+      nature: 'Adamant',
+      statPoints: { ...emptySpread(), atk: 32 },
+    }));
+    const defender = buildPokemon(set({ species: 'Snorlax' }));
+
+    expect(calcOne(ironFist, defender, 'Double Shock').maxDamage)
+      .toBeGreaterThan(calcOne(voltAbsorb, defender, 'Double Shock').maxDamage);
+  });
+
+  it('uses the Champions Steel type for Snap Trap', () => {
+    const attacker = buildPokemon(set({ species: 'Stunfisk-Galar' }));
+    const defender = buildPokemon(set({ species: 'Gastrodon' }));
+
+    expect(calcOne(attacker, defender, 'Snap Trap').maxDamage)
+      .toBeLessThan(calcOne(attacker, defender, 'Tackle').maxDamage);
+  });
 });
 
 describe('current-HP-fraction moves (Super Fang etc.)', () => {

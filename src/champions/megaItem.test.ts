@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { megaFormeFromItem, applyMegaItem } from './data/megas';
+import { megaFormeFromItem, applyMegaItem, getMega } from './data/megas';
 import { emptySpread } from './stats';
 import type { ChampionsSet } from './types';
 
@@ -16,6 +16,17 @@ describe('megaFormeFromItem', () => {
   it('resolves a real per-species Mega Stone to its exact forme (including X/Y)', () => {
     expect(megaFormeFromItem('Charizard', 'Charizardite Y')).toBe('Charizard-Mega-Y');
     expect(megaFormeFromItem('Aerodactyl', 'Aerodactylite')).toBe('Aerodactyl-Mega');
+  });
+
+  it.each([
+    ['Absol', 'Absolite Z', 'Absol-Mega-Z'],
+    ['Garchomp', 'Garchompite Z', 'Garchomp-Mega-Z'],
+    ['Lucario', 'Lucarionite Z', 'Lucario-Mega-Z'],
+    ['Golisopod', 'Golisopite', 'Golisopod-Mega'],
+    ['Baxcalibur', 'Baxcalibrite', 'Baxcalibur-Mega'],
+    ['Salamence', 'Salamencite', 'Salamence-Mega'],
+  ])('resolves %s with %s to %s', (species, stone, forme) => {
+    expect(megaFormeFromItem(species, stone)).toBe(forme);
   });
 
   it('returns undefined for a non-mega item, no item, or a species with no Mega', () => {
@@ -35,5 +46,18 @@ describe('applyMegaItem', () => {
   it('leaves a set with a normal item untouched', () => {
     const s = set({ species: 'Garchomp', item: 'Life Orb' });
     expect(applyMegaItem(s)).toEqual(s);
+  });
+});
+
+describe('Regulation M-C Mega abilities', () => {
+  it.each([
+    ['Absol-Mega-Z', 'Sharpness'],
+    ['Garchomp-Mega-Z', 'Levitate'],
+    ['Lucario-Mega-Z', 'Aura Guard'],
+    ['Salamence-Mega', 'Aerilate'],
+    ['Golisopod-Mega', 'Tough Claws'],
+    ['Baxcalibur-Mega', 'Thermal Exchange'],
+  ] as const)('gives %s the ability %s', (forme, ability) => {
+    expect(getMega(forme)?.ability).toBe(ability);
   });
 });

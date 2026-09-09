@@ -30,11 +30,14 @@ export interface MegaForme {
 /**
  * Champions-custom mega abilities the upstream data we scrape doesn't carry yet
  * (it lists a base-species / placeholder ability instead). Applied on load so a
- * `fetch-megas.mjs` refresh can't quietly revert them. From the latest
- * Regulation: Mega Eelektross has Eelevate and Mega Pyroar has Fire Mane.
+ * `fetch-megas.mjs` refresh cannot quietly restore an outdated ability.
  * See serebii.net/pokemonchampions/newabilities.shtml.
  */
 const ABILITY_OVERRIDES: Record<string, string> = {
+  'Absol-Mega-Z': 'Sharpness',
+  'Garchomp-Mega-Z': 'Levitate',
+  'Lucario-Mega-Z': 'Aura Guard',
+  'Golisopod-Mega': 'Tough Claws',
   'Eelektross-Mega': 'Eelevate',
   'Pyroar-Mega': 'Fire Mane',
 };
