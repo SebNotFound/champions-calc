@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "i18n:ja": "node scripts/build-japanese-names.mjs",
+    "i18n:ja:check": "node scripts/build-japanese-names.mjs --check",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run",
