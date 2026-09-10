@@ -19,6 +19,7 @@ dist-ssr
 samples/crops
 
 # Editor / tooling directories
+.worktrees/
 .claude/
 .vscode/*
 !.vscode/extensions.json
