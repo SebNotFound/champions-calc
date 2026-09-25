@@ -118,6 +118,21 @@ export function Combobox(props: ComboboxProps) {
 }
 
 function ComboboxNative({ value, onChange, listId, placeholder, className, ...rest }: ComboboxProps) {
+  // Pressing Enter on a half-typed name commits the first matching suggestion
+  // (so "chari" + Enter -> Charizard) instead of keeping the partial text. Reads
+  // the shared <datalist> options straight from the DOM, in their listed order.
+  const commitTopMatch = (e: ReactKeyboardEvent<HTMLInputElement>) => {
+    if (e.key !== 'Enter') return;
+    const typed = e.currentTarget.value.trim().toLowerCase();
+    if (!typed) return;
+    const list = document.getElementById(listId) as HTMLDataListElement | null;
+    if (!list) return;
+    const opts = Array.from(list.options, (o) => o.value);
+    if (opts.some((o) => o.toLowerCase() === typed)) return; // already an exact pick
+    const hit = opts.find((o) => o.toLowerCase().startsWith(typed))
+      ?? opts.find((o) => o.toLowerCase().includes(typed));
+    if (hit) { e.preventDefault(); onChange(hit); }
+  };
   return (
     <input
       className={className}
@@ -125,6 +140,7 @@ function ComboboxNative({ value, onChange, listId, placeholder, className, ...re
       value={value}
       placeholder={placeholder}
       onChange={(e) => onChange(e.target.value)}
+      onKeyDown={commitTopMatch}
       spellCheck={false}
       {...rest}
     />

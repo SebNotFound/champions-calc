@@ -114,6 +114,38 @@ export default function App() {
   }, [theme]);
   useEffect(() => { localStorage.setItem('champions-calc/arena', arena ? '1' : '0'); }, [arena]);
 
+  // Hand-off from the Team Finder page (/team-finder.html): it drops the chosen
+  // team in localStorage and sends the user here. We load it as a new saved team
+  // on the requested side, autofilling each set from the species and keeping the
+  // team's real items. Runs once on mount, then clears the hand-off.
+  useEffect(() => {
+    let raw: string | null = null;
+    try { raw = localStorage.getItem('champions-calc/apply-team'); } catch { /* ignore */ }
+    if (!raw) return;
+    try { localStorage.removeItem('champions-calc/apply-team'); } catch { /* ignore */ }
+    let payload: { side?: string; name?: string; mons?: { species: string; megaForme?: string; item?: string }[] };
+    try { payload = JSON.parse(raw); } catch { return; }
+    const mons = payload?.mons;
+    if (!Array.isArray(mons) || !mons.length) return;
+    const members = mons.slice(0, MAX_TEAM_SIZE).map((m) => {
+      const set = autofillSet(m.species, m.megaForme || undefined);
+      return m.item ? { ...set, item: m.item } : set;
+    });
+    const team: Team = { name: (payload.name || 'Imported').slice(0, 22), members };
+    const toEnemy = payload.side === 'enemy';
+    const listKey: TeamKey = toEnemy ? 'enemyTeams' : 'playerTeams';
+    const idxKey = toEnemy ? 'enemyTeamIdx' : 'playerTeamIdx';
+    setState((s) => {
+      const teams = s[listKey];
+      if (teams.length >= MAX_TEAMS) {
+        const active = s[idxKey];
+        return { ...s, [listKey]: teams.map((t, i) => (i === active ? team : t)) };
+      }
+      return { ...s, [listKey]: [...teams, team], [idxKey]: teams.length };
+    });
+    if (!toEnemy) setAttackerIdx(0);
+  }, []);
+
   const { playerTeams, enemyTeams, playerTeamIdx, enemyTeamIdx } = state;
   const playerTeam = playerTeams[playerTeamIdx];
   const enemyTeam = enemyTeams[enemyTeamIdx];
@@ -432,6 +464,9 @@ export default function App() {
         </div>
 
         <div className="header-right">
+          <a className="header-link" href="/team-finder.html" title="Find pre-made teams by the Pokemon on them">
+            Team Finder
+          </a>
           <button className="reset-btn" onClick={handleResetConditions} title="Clear weather, terrain, screens, statuses and boosts">
             Reset
           </button>

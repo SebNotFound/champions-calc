@@ -91,6 +91,12 @@
   border: none; border-radius: var(--radius); background: var(--panel-3); color: var(--text-dim);
 }
 .reset-btn:hover { color: var(--foe); background: var(--foe-soft); }
+/* Link to the standalone Team Finder page (served at /team-finder.html). */
+.header-link {
+  padding: 8px 13px; font-size: 11px; font-weight: 800; white-space: nowrap;
+  border-radius: var(--radius); background: var(--panel-3); color: var(--text-dim); text-decoration: none;
+}
+.header-link:hover { color: var(--ally); background: var(--ally-soft); }
 
 /* ---- Per-side condition boxes (under each team) ---- */
 .side-stack { display: flex; flex-direction: column; gap: 12px; }
