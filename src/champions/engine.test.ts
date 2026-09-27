@@ -26,6 +26,17 @@ describe('buildPokemon injects Champions stats', () => {
   });
 });
 
+describe('invalid held items never blank the damage calc', () => {
+  it('treats an unknown item (the usage "Nothing" placeholder) as no item, so damaging moves still resolve', () => {
+    // Regression: "Nothing" reached @smogon/calc and threw on item.megaStone,
+    // which the arena view swallowed, hiding every attacking move on Talonflame.
+    const attacker = buildPokemon(set({ species: 'Raichu' }));
+    const talon = buildPokemon(set({ species: 'Talonflame', ability: 'Gale Wings', item: 'Nothing' }));
+    const r = calcOne(attacker, talon, 'Thunderbolt', makeField());
+    expect(r.maxPercent).toBeGreaterThan(0); // Electric vs Fire/Flying is 2x, not a blank row
+  });
+});
+
 describe('Mega overlay', () => {
   it('applies mega stats, types and ability (Mega Charizard Y)', () => {
     const zardY = buildPokemon(

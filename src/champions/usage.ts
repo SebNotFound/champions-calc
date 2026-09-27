@@ -88,7 +88,9 @@ export function getUsage(species: string): UsageSet | undefined {
     // The usage source occasionally lists a "Nothing" placeholder for an unused
     // move slot — drop it so a set never autofills a bogus move.
     moves: (entry.moves ?? []).filter((m) => m && m !== 'Nothing'),
-    item: entry.item,
+    // The snapshot uses "Nothing" as a placeholder for an empty item slot; drop
+    // it so a set never carries a bogus item (which would crash the damage calc).
+    item: entry.item && entry.item !== 'Nothing' ? entry.item : undefined,
     ability: entry.ability,
     nature: entry.nature as NatureName | undefined,
     statPoints: entry.sp ? { ...emptySpread(), ...entry.sp } : undefined,

@@ -87,6 +87,18 @@ const ABILITY_IGNORING_MOVES = new Set([
  * Turn a {@link ChampionsSet} into an `@smogon/calc` Pokémon with Champions
  * stats baked in. Throws if the species is unknown to the engine.
  */
+/**
+ * Only ever hand the engine a real held item. An unrecognised string (a
+ * hand-typed typo, or the usage snapshot's "Nothing" placeholder) makes
+ * `@smogon/calc` throw when it looks the item up for base-power mods, which the
+ * arena view then swallows — silently blanking every damaging move against that
+ * Pokémon. Treat anything the dex doesn't know as no item.
+ */
+function validItem(item: string | undefined): string | undefined {
+  if (!item) return undefined;
+  return getGen().items.get(toID(item)) ? item : undefined;
+}
+
 export function buildPokemon(set: ChampionsSet): Pokemon {
   const gen = getGen();
   const mega = set.megaForme ? getMega(set.megaForme) : undefined;
@@ -129,7 +141,7 @@ export function buildPokemon(set: ChampionsSet): Pokemon {
     nature: 'Hardy', // neutral — the real nature is already in champStats
     ability: mega ? (ABILITY_ALIAS[mega.ability] ?? mega.ability) : set.ability,
     // In Champions a Mega Evolution holds no item (the Omni Ring replaces it).
-    item: mega ? undefined : set.item,
+    item: mega ? undefined : validItem(set.item),
     moves: set.moves,
     boosts: set.boosts,
     ivs: zero,
