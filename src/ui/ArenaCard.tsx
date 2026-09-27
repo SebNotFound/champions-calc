@@ -41,9 +41,11 @@ interface Props {
   /** When set (phone overlay), show a tap picker to choose which team member sits
    *  in this active slot — the touch-friendly replacement for drag-to-swap. */
   roster?: ChampionsSet[];
+  /** This side has Tailwind up (doubles this Pokémon's shown Speed). */
+  tailwind?: boolean;
 }
 
-export function ArenaCard({ set, onChange, index, onSwap, role, side, title, attackers, field, roster }: Props) {
+export function ArenaCard({ set, onChange, index, onSwap, role, side, title, attackers, field, roster, tailwind }: Props) {
   const [tab, setTab] = useState(0);
 
   const defender = useMemo<Pokemon | null>(() => {
@@ -93,6 +95,7 @@ export function ArenaCard({ set, onChange, index, onSwap, role, side, title, att
         onChange={onChange}
         role={role}
         title={title}
+        tailwind={tailwind}
         draggable
         onHeaderDragStart={(e) => {
           e.dataTransfer.setData('text/plain', String(index));

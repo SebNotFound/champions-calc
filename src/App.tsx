@@ -321,6 +321,8 @@ export default function App() {
       onScreens={(c) => setFieldState((s) => ({ ...s, yours: { ...s.yours, ...c } }))}
       helpingHand={fieldState.helpingHand}
       onHelpingHand={(v) => setFieldState((s) => ({ ...s, helpingHand: v }))}
+      tailwind={fieldState.yourTailwind}
+      onTailwind={(v) => setFieldState((s) => ({ ...s, yourTailwind: v }))}
     />
   );
   const enemyColumn = (
@@ -351,6 +353,8 @@ export default function App() {
       onScreens={(c) => setFieldState((s) => ({ ...s, theirs: { ...s.theirs, ...c } }))}
       helpingHand={fieldState.enemyHelpingHand}
       onHelpingHand={(v) => setFieldState((s) => ({ ...s, enemyHelpingHand: v }))}
+      tailwind={fieldState.enemyTailwind}
+      onTailwind={(v) => setFieldState((s) => ({ ...s, enemyTailwind: v }))}
     />
   );
   const attackerBlock = (
@@ -361,6 +365,7 @@ export default function App() {
         onChange={updateAttacker}
         role="attacker"
         title="Attacker"
+        tailwind={fieldState.yourTailwind}
       />
       <IncomingPanel
         attacker={attackerMon}
@@ -380,6 +385,7 @@ export default function App() {
       attacker={attackerMon}
       attackerMoves={attackerMoves}
       field={field}
+      tailwind={fieldState.enemyTailwind}
     />
   );
 
@@ -400,6 +406,7 @@ export default function App() {
       title={`Your ${i + 1}`}
       attackers={enemyBattlers}
       field={incomingField}
+      tailwind={fieldState.yourTailwind}
       roster={compact ? playerTeam.members : undefined}
     />
   );
@@ -415,6 +422,7 @@ export default function App() {
       title={`Target ${i + 1}`}
       attackers={playerBattlers}
       field={field}
+      tailwind={fieldState.enemyTailwind}
       roster={compact ? enemyTeam.members : undefined}
     />
   );

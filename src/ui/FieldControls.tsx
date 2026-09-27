@@ -31,6 +31,9 @@ export interface FieldState {
   yours: Screens;
   /** Screens on their side — reduce the damage you deal (outgoing). */
   theirs: Screens;
+  /** Tailwind up on your side / the enemy side — doubles that side's Speed. */
+  yourTailwind: boolean;
+  enemyTailwind: boolean;
 }
 
 const noScreens = (): Screens => ({ reflect: false, lightScreen: false, auroraVeil: false });
@@ -42,6 +45,8 @@ export const defaultFieldState: FieldState = {
   enemyHelpingHand: false,
   yours: noScreens(),
   theirs: noScreens(),
+  yourTailwind: false,
+  enemyTailwind: false,
 };
 
 const toSide = (s: Screens) => ({ isReflect: s.reflect, isLightScreen: s.lightScreen, isAuroraVeil: s.auroraVeil });
@@ -114,7 +119,7 @@ export function WeatherTerrain({ value, onChange }: { value: FieldState; onChang
  *   - Enemy side (foe):  their screens (cut the damage you deal).
  */
 export function SideConditions({
-  variant, title, screens, onScreens, helpingHand, onHelpingHand,
+  variant, title, screens, onScreens, helpingHand, onHelpingHand, tailwind, onTailwind,
 }: {
   variant: 'ally' | 'foe';
   title: string;
@@ -123,6 +128,9 @@ export function SideConditions({
   /** Only the ally side passes these (Helping Hand is your support move). */
   helpingHand?: boolean;
   onHelpingHand?: (v: boolean) => void;
+  /** Tailwind on this side — doubles its Pokémon's Speed (shown in their stats). */
+  tailwind?: boolean;
+  onTailwind?: (v: boolean) => void;
 }) {
   // Each condition is a toggle pill (lit in the side's colour when on), which is
   // both more compact and closer to the game's own HUD than a checkbox list.
@@ -146,6 +154,7 @@ export function SideConditions({
         {pill(screens.reflect, 'Reflect', () => onScreens({ reflect: !screens.reflect }))}
         {pill(screens.lightScreen, 'Light Screen', () => onScreens({ lightScreen: !screens.lightScreen }))}
         {pill(screens.auroraVeil, 'Aurora Veil', () => onScreens({ auroraVeil: !screens.auroraVeil }))}
+        {onTailwind && pill(!!tailwind, 'Tailwind', () => onTailwind(!tailwind))}
       </div>
     </div>
   );

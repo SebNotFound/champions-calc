@@ -51,9 +51,13 @@ interface Props {
   item?: string;
   /** In-battle stat-stage boosts, so the shown stat reflects e.g. a +2 from Swords Dance. */
   boosts?: Partial<StatTable>;
+  /** Paralysis halves Speed (Gen 7+). */
+  paralyzed?: boolean;
+  /** This Pokémon's side has Tailwind up, which doubles its Speed. */
+  tailwind?: boolean;
 }
 
-export function StatSpreadEditor({ baseStats, spread, nature, level, onChange, item, boosts }: Props) {
+export function StatSpreadEditor({ baseStats, spread, nature, level, onChange, item, boosts, paralyzed, tailwind }: Props) {
   const finalStats = baseStats
     ? computeChampionsStats(baseStats, spread, nature, level)
     : undefined;
@@ -82,15 +86,22 @@ export function StatSpreadEditor({ baseStats, spread, nature, level, onChange, i
         // This matches what the damage calc actually uses, so the two agree.
         const stage = stat === 'hp' ? 0 : (boosts?.[stat] ?? 0);
         const itemHere = itemBoost && itemBoost.stat === stat;
+        // Speed also answers to Tailwind (x2 for its side) and paralysis (x0.5).
+        const tailwindHere = stat === 'spe' && !!tailwind;
+        const paraHere = stat === 'spe' && !!paralyzed;
         let shownStat: number | undefined;
         if (finalStats) {
           shownStat = applyBoostStage(finalStats[stat], stage);
           if (itemHere) shownStat = Math.floor(shownStat * itemBoost!.mult);
+          if (tailwindHere) shownStat = Math.floor(shownStat * 2);
+          if (paraHere) shownStat = Math.floor(shownStat * 0.5);
         }
-        const modified = stage !== 0 || itemHere;
+        const modified = stage !== 0 || itemHere || tailwindHere || paraHere;
         const modTitle = [
           stage ? `${stage > 0 ? '+' : ''}${stage} stage` : '',
           itemHere ? `x${itemBoost!.mult} ${item}` : '',
+          tailwindHere ? 'Tailwind x2' : '',
+          paraHere ? 'paralysis x0.5' : '',
         ].filter(Boolean).join(', ');
         return (
           <div className={`spread-row spread-row--${stat}`} key={stat}>

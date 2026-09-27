@@ -83,11 +83,13 @@ interface Props {
   collapsibleBody?: boolean;
   /** Label for the collapse toggle. */
   summaryLabel?: string;
+  /** This Pokémon's side has Tailwind up (doubles the shown Speed). */
+  tailwind?: boolean;
 }
 
 export function PokemonEditor({
   set, onChange, role, title, draggable, onHeaderDragStart, onHeaderDragEnd,
-  collapsibleBody, summaryLabel,
+  collapsibleBody, summaryLabel, tailwind,
 }: Props) {
   const mega = set.megaForme ? getMega(set.megaForme) : undefined;
 
@@ -212,6 +214,8 @@ export function PokemonEditor({
         onChange={(statPoints) => patch({ statPoints })}
         item={mega ? undefined : set.item}
         boosts={set.boosts}
+        paralyzed={set.status === 'par'}
+        tailwind={tailwind}
       />
 
       {/* Moves: the attacker's drive damage to each target; a defender's drive the

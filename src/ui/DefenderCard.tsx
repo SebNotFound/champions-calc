@@ -29,9 +29,11 @@ interface Props {
   index: number;
   /** Swap the target dragged from `from` with this card's position. */
   onSwap: (from: number, to: number) => void;
+  /** Enemy side has Tailwind up (doubles this target's shown Speed). */
+  tailwind?: boolean;
 }
 
-export function DefenderCard({ set, onChange, attacker, attackerMoves, field, index, onSwap }: Props) {
+export function DefenderCard({ set, onChange, attacker, attackerMoves, field, index, onSwap, tailwind }: Props) {
   // Build this defender; null if the species box is mid-edit / unknown.
   const defender = useMemo<Pokemon | null>(() => {
     try {
@@ -68,6 +70,7 @@ export function DefenderCard({ set, onChange, attacker, attackerMoves, field, in
         onChange={onChange}
         role="defender"
         title={`Target ${index + 1}`}
+        tailwind={tailwind}
         draggable
         onHeaderDragStart={(e) => {
           e.dataTransfer.setData('text/plain', String(index));
